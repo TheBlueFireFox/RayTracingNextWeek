@@ -1,0 +1,19 @@
+[package]
+name = "ray-tracing-weekend"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = ["ray-tracing"]
+
+[dependencies]
+rayon = "1.5"
+indicatif = {version = "0.16", features = ["rayon"] }
+ray-tracing = { path = "ray-tracing" }
+
+[profile.release]
+debug = true
+lto = "fat"
+codegen-units = 1
