@@ -10,6 +10,7 @@ members = ["ray-tracing"]
 
 [dependencies]
 rayon = "1.5"
+console = "0.14"
 indicatif = {version = "0.16", features = ["rayon"] }
 ray-tracing = { path = "ray-tracing" }
 

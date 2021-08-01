@@ -12,7 +12,7 @@ use ray_tracing::{
 
 use crate::scenes::{self, Worlds};
 
-pub const WORLD : Worlds = Worlds::TwoSpheres;
+pub const WORLD: Worlds = Worlds::TwoSpheres;
 
 pub const REPETITION: usize = 2;
 pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -46,9 +46,8 @@ fn ray_color<H: Hittable>(r: &Ray, world: &H, depth: usize) -> Color {
     (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
 }
 
-fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam : &Camera) -> Vec<Color> {
+fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     pb.set_position(0);
-
 
     // Render
 
@@ -114,10 +113,8 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Vec<Color> {
         Worlds::RandomScene => {
             aperture = 1.0;
             scenes::random_scene()
-        },
-        Worlds::TwoSpheres => {
-            scenes::two_spheres()
-        },
+        }
+        Worlds::TwoSpheres => scenes::two_spheres(),
     };
 
     // Camera

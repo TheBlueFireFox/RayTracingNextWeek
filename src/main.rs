@@ -20,9 +20,17 @@ fn create_image() -> thread::Result<Vec<Color>> {
 
     const DRAW_RATE: u64 = 15;
 
-    let sty = ProgressStyle::default_bar().template(
-        "{spinner} [{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {percent}% ~{eta}",
-    );
+    // Calculate the size of the current terminal
+    let (_, size) =  console::Term::stdout().size();
+    let size = if size < 70 {
+        size / 3
+    } else {
+        size / 2
+    };
+
+    let format = format!("{{spinner}} [{{elapsed_precise}}] {{bar:{}.cyan/blue}} {{pos:>7}}/{{len:7}} {{percent}}% ~{{eta}}", size);
+
+    let sty = ProgressStyle::default_bar().template(&format);
 
     let setup = |size| {
         let pb = mp.add(ProgressBar::new(size as u64));

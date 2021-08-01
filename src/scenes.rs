@@ -13,7 +13,7 @@ use ray_tracing::{
 #[allow(unused)]
 pub enum Worlds {
     TwoSpheres,
-    RandomScene
+    RandomScene,
 }
 
 pub fn two_spheres() -> HittableList {
