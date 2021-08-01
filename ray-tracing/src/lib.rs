@@ -8,6 +8,7 @@ pub mod hittable;
 pub mod material;
 pub mod ray;
 pub mod sphere;
+pub mod texture;
 
 mod rtweekend;
 pub use rtweekend::*;

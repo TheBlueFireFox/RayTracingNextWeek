@@ -28,7 +28,6 @@ impl BvhNode {
         time0: f64,
         time1: f64,
     ) -> Self {
-
         let axis = rand_range(0..=2);
         let comparator: &dyn Fn(&HittableObject, &HittableObject) -> Ordering = match axis {
             0 => &box_x_compare,
@@ -60,7 +59,6 @@ impl BvhNode {
                 let mid = start + object_span / 2;
                 left = Arc::new(Self::from_list(objects, start, mid, time0, time1));
                 right = Arc::new(Self::from_list(objects, mid, end, time0, time1));
-
             }
         }
 
@@ -112,11 +110,11 @@ impl Hittable for BvhNode {
 
 #[inline]
 fn box_compare(a: &HittableObject, b: &HittableObject, axis: usize) -> Ordering {
-    let box_a = Aabb::default();
-    let box_b = Aabb::default();
+    let mut box_a = Aabb::default();
+    let mut box_b = Aabb::default();
 
     assert!(
-        !a.bounding_box(0.0, 0.0, &mut box_a) || !b.bounding_box(0.0, 0.0, &mut box_a),
+        !a.bounding_box(0.0, 0.0, &mut box_a) || !b.bounding_box(0.0, 0.0, &mut box_b),
         "No bounding box in bvh_node constructor.\n"
     );
 
@@ -125,7 +123,7 @@ fn box_compare(a: &HittableObject, b: &HittableObject, axis: usize) -> Ordering 
     // are used here
     box_a.min().data()[axis]
         .partial_cmp(&box_b.min().data()[axis])
-        .expect("illegal f64 value was used here")
+        .expect("illegal f64 value was used here, no NaN or Inf allowed")
 }
 
 fn box_x_compare(a: &HittableObject, b: &HittableObject) -> Ordering {

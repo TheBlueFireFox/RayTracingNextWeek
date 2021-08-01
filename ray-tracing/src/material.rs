@@ -6,6 +6,7 @@ use crate::{
     ray::{Ray, Vec3},
     render::Color,
     rtweekend,
+    texture::{SolidColor, Texture},
 };
 
 pub type Mat = Arc<dyn Material>;
@@ -21,12 +22,21 @@ pub trait Material: Send + Sync {
 }
 
 pub struct Lambertian {
-    pub albedo: Color,
+    pub albedo: Arc<dyn Texture>,
 }
 
 impl Lambertian {
     pub fn new(a: Color) -> Self {
-        Self { albedo: a }
+        Self::with_texture(SolidColor::new(a))
+    }
+
+    pub fn with_texture<T>(a: T) -> Self
+    where
+        T: Texture + 'static,
+    {
+        Self {
+            albedo: Arc::new(a),
+        }
     }
 }
 
@@ -43,7 +53,7 @@ impl Material for Lambertian {
             scatter_direction = rec.normal;
         }
         *scattered = Ray::with_time(rec.p, scatter_direction, r_in.time());
-        *attenuation = self.albedo;
+        *attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
 
         true
     }

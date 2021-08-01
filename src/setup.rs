@@ -3,16 +3,7 @@ use std::{borrow::BorrowMut, cell::RefCell, rc::Rc, sync::Arc};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use ray_tracing::{
-    camera::Camera,
-    clamp,
-    hittable::{Hittable, HittableList},
-    material::{Dielectric, Lambertian, Material, Metal},
-    rand_range,
-    ray::{Point, Ray, Vec3},
-    render::Color,
-    sphere::{MovingSphere, Sphere},
-};
+use ray_tracing::{camera::Camera, clamp, hittable::{Hittable, HittableList}, material::{Dielectric, Lambertian, Material, Metal}, rand_range, ray::{Point, Ray, Vec3}, render::Color, sphere::{MovingSphere, Sphere}, texture::CheckerTexture};
 
 pub const REPETITION: usize = 2;
 pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -24,10 +15,10 @@ pub const GAMMA: f64 = 2.0;
 
 fn random_scene() -> HittableList {
     let world = HittableList::with_capacity(11 * 2 * 2);
-    let mut world = Rc::new(RefCell::new(Some(world)));
+    let world = RefCell::new(Some(world));
 
     let adder_point = |p, r, m| {
-        (*world.clone())
+        (world)
             .borrow_mut()
             .as_mut()
             .unwrap()
@@ -35,7 +26,7 @@ fn random_scene() -> HittableList {
     };
 
     let adder_m_point = |c1, c2, t1, t2, r, m| {
-        (*world.clone())
+        (world)
             .borrow_mut()
             .as_mut()
             .unwrap()
@@ -60,7 +51,9 @@ fn random_scene() -> HittableList {
     };
 
     let make_diel = |v| make_diel_o(v);
-
+    let checker = CheckerTexture::with_color(Color::new(0.2, 0.3, 0.1), Color::new(0.9, 0.9, 0.9));
+    let checker = Lambertian::with_texture(checker);
+    adder_point(Point::new(0.0, -1000.0, 0.0), 1000.0, Arc::new(checker));
     let calc = |v| (v as f64) + 0.9 * rand_range(0.0..1.0);
 
     for a in -11..11 {
@@ -98,7 +91,12 @@ fn random_scene() -> HittableList {
         adder_point(p, 1.0, m.1.clone());
     }
 
-    world.borrow_mut().take().unwrap()
+    // unwrap is safe to work here
+    // as the Option above is soley
+    // used to be able to take the 
+    // resulting world
+    let res = world.borrow_mut().take().unwrap();
+    res
 }
 
 fn ray_color<H: Hittable>(r: &Ray, world: &H, depth: usize) -> Color {
