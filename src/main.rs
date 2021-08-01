@@ -11,6 +11,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ray_tracing::render::{ppm, Color, Image};
 use setup::{IMAGE_HEIGHT, IMAGE_WIDTH, REPETITION};
 
+mod scenes;
 mod setup;
 
 fn create_image() -> thread::Result<Vec<Color>> {

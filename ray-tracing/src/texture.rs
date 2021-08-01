@@ -44,7 +44,6 @@ impl CheckerTexture {
     }
 }
 
- 
 impl Texture for CheckerTexture {
     fn value(&self, u: f64, v: f64, p: &Point) -> Color {
         let calc = |v: f64| (10.0 * v).sin();
@@ -56,4 +55,3 @@ impl Texture for CheckerTexture {
         }
     }
 }
-
