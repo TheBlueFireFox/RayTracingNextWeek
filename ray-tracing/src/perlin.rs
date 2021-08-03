@@ -51,6 +51,24 @@ impl Perlin {
         Self::perlin_interp(&c, u, v, w)
     }
 
+    pub fn turb(&self, p: &Point) -> f64 {
+        self.turb_with_depth(p, 7)
+    }
+
+    pub fn turb_with_depth(&self, p: &Point, depth: usize) -> f64 {
+        let mut accum = 0.0;
+        let mut temp_p = p.clone();
+        let mut weight = 1.0;
+
+        for _ in 0..depth {
+            accum += weight * self.noise(&temp_p);
+            weight *= 0.5;
+            temp_p *= 2.0;
+        }
+
+        accum.abs()
+    }
+
     fn perlin_interp(c: &[[[Vec3; 2]; 2]], u: f64, v: f64, w: f64) -> f64 {
         let calc = |v: f64| v * v * (3.0 - 2.0 * v);
 
@@ -68,7 +86,7 @@ impl Perlin {
 
                 for kk in 0..2 {
                     let k = kk as f64;
-                    let weight_v = [u-i, v-j, w-k].into();
+                    let weight_v = [u - i, v - j, w - k].into();
                     accum += (i * uu + (1.0 - i) * (1.0 - uu))
                         * (j * vv + (1.0 - j) * (1.0 - vv))
                         * (k * ww + (1.0 - k) * (1.0 - ww))

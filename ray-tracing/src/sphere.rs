@@ -1,6 +1,11 @@
 use std::f64::consts::PI;
 
-use crate::{aabb::Aabb, hittable::{HitRecord, Hittable}, material::Mat, ray::{Point, Ray, Vec3}};
+use crate::{
+    aabb::Aabb,
+    hittable::{HitRecord, Hittable},
+    material::Mat,
+    ray::{Point, Ray, Vec3},
+};
 
 pub struct Sphere {
     pub center: Point,
