@@ -547,6 +547,6 @@ mod tests {
         ]
         .into();
         assert_eq!(v.cross(&l), r);
-        assert_eq!(cross(&v, &l), r);
+        assert_eq!(CVec::cross(&v, &l), r);
     }
 }

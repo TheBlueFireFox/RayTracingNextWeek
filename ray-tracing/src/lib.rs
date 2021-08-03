@@ -10,7 +10,7 @@ pub mod ray;
 pub mod sphere;
 pub mod texture;
 
-mod cvec;
+mod helpers;
 mod perlin;
 
 mod rtweekend;
