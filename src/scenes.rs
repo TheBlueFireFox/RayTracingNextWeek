@@ -68,10 +68,10 @@ pub fn random_scene() -> HittableList {
 
     let adder_m_point = |c1, c2, t1, t2, r, m| {
         (world)
-        .borrow_mut()
-        .as_mut()
-        .unwrap()
-        .add(MovingSphere::new(c1, c2, t1, t2, r, m));
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .add(MovingSphere::new(c1, c2, t1, t2, r, m));
     };
 
     let make_lam = |p: Color| Arc::new(Lambertian::new(p));

@@ -20,16 +20,34 @@ impl Perlin {
     }
 
     pub fn noise(&self, p: &Point) -> f64 {
-        let calc = |v| {
-            let a = (4.0 * v) as usize;
-            a & 255
-        };
+         let calc = |v| {
+             let a = (4.0 * v) as isize;
+             (a & (POINT_COUNT as isize - 1)) as usize
+         };
 
-        let i = calc(p.x());
-        let j = calc(p.y());
-        let k = calc(p.z());
+         let i = calc(p.x());
+         let j = calc(p.y());
+         let k = calc(p.z());
 
-        self.ranfloat[self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]]
+         self.ranfloat[self.perm_x[i] ^ self.perm_y[j] ^ self.perm_z[k]]
+    }
+
+    fn trilinear_interp(c: &[[[f64; 2]; 2]], u: f64, v: f64, w: f64) -> f64 {
+        let mut accum = 0.0;
+        for ii in 0..2 {
+            let i = ii as f64;
+            for jj in 0..2 {
+                let j = jj as f64;
+                for kk in 0..2 {
+                    let k = kk as f64;
+                    accum += (i * u + (1.0 - i) * (1.0 - u))
+                        * (j * v + (1.0 - j) * (1.0 - v))
+                        * (k * w + (1.0 - k) * (1.0 - w))
+                        * c[ii][jj][kk];
+                }
+            }
+        }
+        accum
     }
 
     fn generate_perm() -> Vec<usize> {
@@ -45,6 +63,7 @@ impl Perlin {
         }
     }
 }
+
 impl Default for Perlin {
     fn default() -> Self {
         Self::new()
