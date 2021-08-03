@@ -15,13 +15,21 @@ pub struct BvhNode {
 
 impl BvhNode {
     pub fn from_hittable_list(list: &HittableList, time0: f64, time1: f64) -> Self {
-        // Create a modifable array of the source scene objects
-        let mut c = list.objects().to_vec();
-
-        Self::from_list(&mut c, 0, list.objects().len(), time0, time1)
+        Self::from_list(&list.objects(), 0, list.objects().len(), time0, time1)
     }
 
     pub fn from_list(
+        objects: &[HittableObject],
+        start: usize,
+        end: usize,
+        time0: f64,
+        time1: f64,
+    ) -> Self {
+        // Create a modifable array of the source scene objects
+        Self::inner_from_list(&mut objects.to_vec(), start, end, time0, time1)
+    }
+
+    fn inner_from_list(
         objects: &mut [HittableObject],
         start: usize,
         end: usize,
@@ -29,6 +37,7 @@ impl BvhNode {
         time1: f64,
     ) -> Self {
         let axis = rand_range(0..=2);
+
         let comparator: &dyn Fn(&HittableObject, &HittableObject) -> Ordering = match axis {
             0 => &box_x_compare,
             1 => &box_y_compare,
@@ -39,12 +48,13 @@ impl BvhNode {
 
         let left;
         let right;
+
         match object_span {
             1 => {
                 left = objects[start].clone();
                 right = objects[start].clone();
             }
-            2 => match comparator(&objects[start], &objects[start]) {
+            2 => match comparator(&objects[start], &objects[start + 1]) {
                 Ordering::Less => {
                     left = objects[start].clone();
                     right = objects[start + 1].clone();
@@ -57,6 +67,7 @@ impl BvhNode {
             _ => {
                 objects.sort_by(comparator);
                 let mid = start + object_span / 2;
+
                 left = Arc::new(Self::from_list(objects, start, mid, time0, time1));
                 right = Arc::new(Self::from_list(objects, mid, end, time0, time1));
             }
@@ -108,7 +119,6 @@ impl Hittable for BvhNode {
     }
 }
 
-#[inline]
 fn box_compare(a: &HittableObject, b: &HittableObject, axis: usize) -> Ordering {
     let mut box_a = Aabb::default();
     let mut box_b = Aabb::default();
@@ -121,8 +131,9 @@ fn box_compare(a: &HittableObject, b: &HittableObject, axis: usize) -> Ordering 
     // As there currently is no total_cmp implemented
     // we are going to assume that no illegal values
     // are used here
-    box_a.min().data()[axis]
-        .partial_cmp(&box_b.min().data()[axis])
+    let left = box_a.min().data()[axis];
+    let right = box_b.min().data()[axis];
+    left.partial_cmp(&right)
         .expect("illegal f64 value was used here, no NaN or Inf allowed")
 }
 

@@ -21,12 +21,8 @@ fn create_image() -> thread::Result<Vec<Color>> {
     const DRAW_RATE: u64 = 15;
 
     // Calculate the size of the current terminal
-    let (_, size) =  console::Term::stdout().size();
-    let size = if size < 70 {
-        size / 3
-    } else {
-        size / 2
-    };
+    let (_, size) = console::Term::stdout().size();
+    let size = if size < 70 { size / 3 } else { size / 2 };
 
     let format = format!("{{spinner}} [{{elapsed_precise}}] {{bar:{}.cyan/blue}} {{pos:>7}}/{{len:7}} {{percent}}% ~{{eta}}", size);
 

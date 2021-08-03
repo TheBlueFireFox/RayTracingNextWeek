@@ -2,10 +2,10 @@ use std::f64::consts::PI;
 
 use crate::{
     aabb::Aabb,
-    cvec::{dot, Vec3},
+    cvec::dot,
     hittable::{HitRecord, Hittable},
     material::Mat,
-    ray::{Point, Ray},
+    ray::{Point, Ray, Vec3},
 };
 
 pub struct Sphere {
@@ -31,7 +31,7 @@ impl Sphere {
     ///     <0 1 0> yields <0.50 1.00>       < 0 -1  0> yields <0.50 0.00>
     ///     <0 0 1> yields <0.25 0.50>       < 0  0 -1> yields <0.75 0.50>
     fn get_sphere_uv(&self, p: &Point) -> (f64, f64) {
-        let theta = -p.y().acos();
+        let theta = f64::acos(-p.y());
         let phi = f64::atan2(-p.z(), p.x()) + PI;
         let u = phi / (2.0 * PI);
         let v = theta / PI;
@@ -75,10 +75,8 @@ impl Hittable for Sphere {
     }
 
     fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
-        *output = Aabb::new(
-            self.center - Vec3::new(self.radius, self.radius, self.radius),
-            self.center + Vec3::new(self.radius, self.radius, self.radius),
-        );
+        let v = [self.radius; 3].into();
+        *output = Aabb::new(self.center - v, self.center + v);
         true
     }
 }
@@ -152,12 +150,14 @@ impl Hittable for MovingSphere {
     fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool {
         let calc = |time| {
             let cen = self.center(time);
-            let vec_r = Vec3::new(self.radius, self.radius, self.radius);
+            let vec_r = [self.radius; 3].into();
             Aabb::new(cen - vec_r, cen + vec_r)
         };
         let box0 = calc(time0);
         let box1 = calc(time1);
+
         *output = Aabb::surrounding_box(&box0, &box1);
+
         true
     }
 }
