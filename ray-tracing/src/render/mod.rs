@@ -1,4 +1,7 @@
-pub mod ppm;
+mod ppm;
+mod png;
+
+use std::{io, path::Path};
 
 use helpers::cvec;
 
@@ -22,15 +25,15 @@ impl<'a> Image<'a> {
             width,
         }
     }
-    pub fn get_pixels(&self) -> &'_ [Color] {
+    pub fn pixels(&self) -> &'_ [Color] {
         self.pixels
     }
 
-    pub fn get_height(&self) -> usize {
+    pub fn height(&self) -> usize {
         self.height
     }
 
-    pub fn get_width(&self) -> usize {
+    pub fn width(&self) -> usize {
         self.width
     }
 }
@@ -44,3 +47,17 @@ impl<'a> Render<'a> for Image<'a> {
 pub trait Render<'a> {
     fn image(&self) -> &Image<'_>;
 }
+
+#[allow(unused)]
+pub enum FileFormat {
+    PPM,
+    PNG
+}
+
+pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(image: T, path: P, format: FileFormat) -> Result<(), io::Error> {
+    match format {
+        FileFormat::PPM => ppm::save(image, path),
+        FileFormat::PNG => png::save(image, path),
+    }
+}
+

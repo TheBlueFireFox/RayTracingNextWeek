@@ -8,20 +8,20 @@ pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(image: T, path: P) -> Result<(), 
 
     let text_length = {
         let mut len = 3; // P3\n
-        len += ((img.get_width() as f64).log10() + 1.0) as usize;
+        len += ((img.width() as f64).log10() + 1.0) as usize;
         len += 1;
-        len += ((img.get_height() as f64).log10() + 1.0) as usize;
+        len += ((img.height() as f64).log10() + 1.0) as usize;
         len += 5; // => \n255\n
-        len += img.get_height() + img.get_height() * img.get_width() * LINE_LENGTH;
+        len += img.height() + img.height() * img.width() * LINE_LENGTH;
         len
     };
 
     let mut s = String::with_capacity(text_length);
 
     // no error possible as per docs
-    write!(s, "P3\n{} {}\n255\n", img.get_width(), img.get_height()).unwrap();
+    let _ = write!(s, "P3\n{} {}\n255\n", img.width(), img.height());
 
-    for p in img.get_pixels() {
+    for p in img.pixels() {
         let r = p.x() as u8;
         let g = p.y() as u8;
         let b = p.z() as u8;

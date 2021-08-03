@@ -8,7 +8,7 @@ use std::{
 };
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use ray_tracing::render::{ppm, Color, Image};
+use ray_tracing::render::{self, Color, Image};
 use setup::{IMAGE_HEIGHT, IMAGE_WIDTH, REPETITION};
 
 mod scenes;
@@ -82,6 +82,6 @@ fn main() {
     println!("Writing data");
     let img = Image::new(&data, IMAGE_HEIGHT, IMAGE_WIDTH);
 
-    ppm::save(img, path).expect("Something went terribly wrong here");
+    render::save(img, path, render::FileFormat::PNG).expect("Something went terribly wrong here");
     println!("Done");
 }
