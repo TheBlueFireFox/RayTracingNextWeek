@@ -1,7 +1,7 @@
 use std::{cell::RefCell, sync::Arc};
 
 use ray_tracing::{
-    hittable::{Hittable, HittableList},
+    hittable::HittableList,
     material::{Dielectric, Lambertian, Mat, Metal},
     rand_range,
     ray::{Point, Vec3},
@@ -19,7 +19,7 @@ pub enum Worlds {
 
 pub fn two_perlin_spheres() -> HittableList {
     let mut world = HittableList::with_capacity(2);
-    let pertext = NoiseTexture::new();
+    let pertext = NoiseTexture::with_scale(4.0);
     let lam = Lambertian::with_texture(pertext);
     let lam = Arc::new(lam);
 

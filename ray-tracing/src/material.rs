@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::{
-    cvec::{self, dot, reflect, refract},
     hittable::HitRecord,
     ray::{Ray, Vec3},
     render::Color,
@@ -78,7 +77,7 @@ impl Material for Metal {
         attenuation: &mut Color,
         scattered: &mut Ray,
     ) -> bool {
-        let reflected = cvec::reflect(r_in.direction().unit_vector(), rec.normal);
+        let reflected = Vec3::reflect(&r_in.direction().unit_vector(), &rec.normal);
         *scattered = Ray::with_time(
             rec.p,
             reflected + self.fuzz * Vec3::random_in_unit_sphere(),
@@ -86,7 +85,7 @@ impl Material for Metal {
         );
         *attenuation = self.albedo;
 
-        cvec::dot(scattered.direction(), rec.normal) > 0.0
+        Vec3::dot(&scattered.direction(), &rec.normal) > 0.0
     }
 }
 
@@ -123,7 +122,7 @@ impl Material for Dielectric {
         };
 
         let unit_direction = r_in.direction().unit_vector();
-        let cos_theta = dot(-unit_direction, rec.normal).min(1.0);
+        let cos_theta = Vec3::dot(&(-unit_direction), &rec.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
@@ -131,9 +130,9 @@ impl Material for Dielectric {
         let direction = if cannot_refract
             || Self::reflectance(cos_theta, refraction_ratio) > rtweekend::rand_range(0.0..1.0)
         {
-            reflect(unit_direction, rec.normal)
+            Vec3::reflect(&unit_direction, &rec.normal)
         } else {
-            refract(unit_direction, rec.normal, refraction_ratio)
+            Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
         };
 
         *scattered = Ray::with_time(rec.p, direction, r_in.time());

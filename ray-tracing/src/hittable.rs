@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::{
     aabb::Aabb,
-    cvec::dot,
     material::Material,
     ray::{Point, Ray, Vec3},
 };
@@ -21,7 +20,7 @@ pub struct HitRecord {
 impl HitRecord {
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: &Vec3) {
         let outward_normal = *outward_normal;
-        self.front_face = dot(r.direction(), outward_normal) < 0.0;
+        self.front_face = Vec3::dot(&r.direction(), &outward_normal) < 0.0;
         self.normal = if self.front_face {
             outward_normal
         } else {

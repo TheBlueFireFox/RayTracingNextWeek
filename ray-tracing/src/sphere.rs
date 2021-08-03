@@ -1,12 +1,6 @@
 use std::f64::consts::PI;
 
-use crate::{
-    aabb::Aabb,
-    cvec::dot,
-    hittable::{HitRecord, Hittable},
-    material::Mat,
-    ray::{Point, Ray, Vec3},
-};
+use crate::{aabb::Aabb, hittable::{HitRecord, Hittable}, material::Mat, ray::{Point, Ray, Vec3}};
 
 pub struct Sphere {
     pub center: Point,
@@ -43,7 +37,7 @@ impl Hittable for Sphere {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let oc = r.origin() - self.center;
         let a = r.direction().length_squared();
-        let half_b = dot(oc, r.direction());
+        let half_b = Vec3::dot(&oc, &r.direction());
         let c = oc.length_squared() - self.radius * self.radius;
 
         let discriminant = half_b * half_b - a * c;
@@ -119,7 +113,7 @@ impl Hittable for MovingSphere {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let oc = r.origin() - self.center(r.time());
         let a = r.direction().length_squared();
-        let half_b = dot(oc, r.direction());
+        let half_b = Vec3::dot(&oc, &r.direction());
         let c = oc.length_squared() - self.radius * self.radius;
 
         let discriminant = half_b * half_b - a * c;

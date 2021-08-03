@@ -1,5 +1,4 @@
 use crate::{
-    cvec::cross,
     degrees_to_radians, rand_range,
     ray::{Point, Ray, Vec3},
 };
@@ -35,8 +34,8 @@ impl Camera {
         let viewport_width = aspect_ratio * viewport_height;
 
         let w = (lookfrom - lookat).unit_vector();
-        let u = cross(&vup, &w).unit_vector();
-        let v = cross(&w, &u);
+        let u = Vec3::cross(&vup, &w).unit_vector();
+        let v = Vec3::cross(&w, &u);
 
         let origin = lookfrom;
         let horizontal = focus_dist * viewport_width * u;

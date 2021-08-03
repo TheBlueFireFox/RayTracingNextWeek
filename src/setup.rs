@@ -14,9 +14,9 @@ use crate::scenes::{self, Worlds};
 
 pub const WORLD: Worlds = Worlds::TwoPerlinSpheres;
 
-pub const REPETITION: usize = 1;
+pub const REPETITION: usize = 2;
 pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
-pub const IMAGE_WIDTH: usize = 400;
+pub const IMAGE_WIDTH: usize = 160 * 4;
 pub const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 pub const SAMPLES_PER_PIXEL: usize = 100;
 pub const MAX_DEPTH: usize = 50;

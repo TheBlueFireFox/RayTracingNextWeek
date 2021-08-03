@@ -126,7 +126,7 @@ where
 
     pub fn random_in_hemisphere(&self) -> Self {
         let in_unit = Self::random_in_unit_sphere();
-        if dot(in_unit, *self) > T::zero() {
+        if Self::dot(self, &in_unit) > T::zero() {
             in_unit
         } else {
             in_unit * -T::one()
@@ -304,26 +304,30 @@ where
     }
 }
 
-pub fn dot<T, const N: usize>(l: CVec<T, N>, r: CVec<T, N>) -> T
+impl<T, const N: usize> CVec<T, N>
 where
     T: num_traits::NumRef + Default + Copy,
 {
-    let mut res = T::zero();
-    for i in 0..l.len() {
-        res = res + l.data[i] * r.data[i];
-    }
+    pub fn dot(&self, r: &Self) -> T {
+        let mut res = T::zero();
+        for i in 0..self.len() {
+            res = res + self.data[i] * r.data[i];
+        }
 
-    res
+        res
+    }
 }
 
-pub fn reflect<T, const N: usize>(v: CVec<T, N>, n: CVec<T, N>) -> CVec<T, N>
+impl<T, const N: usize> CVec<T, N>
 where
     T: num_traits::NumRef + From<f64> + Default + Copy,
 {
-    v - n * T::from(2.0) * dot(v, n)
+    pub fn reflect(&self, n: &Self) -> Self {
+        *self - *n * T::from(2.0) * Self::dot(self, n)
+    }
 }
 
-pub fn refract<T, const N: usize>(uv: CVec<T, N>, n: CVec<T, N>, etai_over_etat: f64) -> CVec<T, N>
+impl<T, const N: usize> CVec<T, N>
 where
     T: num_traits::NumRef
         + From<f64>
@@ -335,21 +339,23 @@ where
         + Copy,
     f64: Into<T>,
 {
-    let cos_theta = dot(-uv, n);
+    pub fn refract(&self, n: &Self, etai_over_etat: f64) -> Self {
+        let cos_theta = Self::dot(&(-*self), n);
 
-    let cos_theta = if cos_theta < T::one() {
-        cos_theta
-    } else {
-        T::one()
-    };
+        let cos_theta = if cos_theta < T::one() {
+            cos_theta
+        } else {
+            T::one()
+        };
 
-    let r_out_perp = etai_over_etat.into() * (uv + cos_theta * n);
-    let mut t: f64 = (T::one() - r_out_perp.length_squared()).into();
-    t = -(t.abs().sqrt());
-    let t: T = t.into();
-    let r_out_parallel = t * n;
+        let r_out_perp = etai_over_etat.into() * (*self + cos_theta * *n);
+        let mut t: f64 = (T::one() - r_out_perp.length_squared()).into();
+        t = -(t.abs().sqrt());
+        let t: T = t.into();
+        let r_out_parallel = t * *n;
 
-    r_out_perp + r_out_parallel
+        r_out_perp + r_out_parallel
+    }
 }
 
 pub type Vec3<T> = CVec<T, 3>;
@@ -404,14 +410,6 @@ where
         ]
         .into()
     }
-}
-
-#[inline]
-pub fn cross<T>(l: &Vec3<T>, r: &Vec3<T>) -> Vec3<T>
-where
-    T: num_traits::NumAssignRef + Default + Copy,
-{
-    l.cross(r)
 }
 
 #[cfg(test)]
@@ -532,7 +530,7 @@ mod tests {
     fn test_dot() {
         let (v, l) = setup();
         let r = 0.1 * 0.0 + 0.2 * 0.1 + 0.3 * 0.2 + 0.4 * 0.3 + 0.5 * 0.4;
-        assert_eq!(dot(v, l), r);
+        assert_eq!(CVec::dot(&v, &l), r);
     }
 
     fn setup_vec3() -> (Vec3<f64>, Vec3<f64>) {
