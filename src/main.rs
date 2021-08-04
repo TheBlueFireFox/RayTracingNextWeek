@@ -67,6 +67,11 @@ fn create_image() -> Result<Vec<Color>, Box<dyn error::Error>> {
     let mp_handler = thread::spawn(move || mp.join());
 
     // special case of a panic happening
+    let res = match data.join() {
+        Ok(res) => res.map_err(|err| err as _),
+        Err(err) => panic::resume_unwind(err),
+    };
+
     if let Err(err) = ticker.join() {
         panic::resume_unwind(err);
     }
@@ -76,10 +81,7 @@ fn create_image() -> Result<Vec<Color>, Box<dyn error::Error>> {
         Err(err) => panic::resume_unwind(err)
     }
 
-    match data.join() {
-        Ok(res) => res.map_err(|err| err as _),
-        Err(err) => panic::resume_unwind(err),
-    }
+    res
 }
 
 fn main() {
