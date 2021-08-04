@@ -100,7 +100,7 @@ pub struct ImageTexture {
 }
 
 impl ImageTexture {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn error::Error>> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn error::Error + Send>> {
         let img = loader::read(path)?;
         Ok(Self { img: Some(img) })
     }
@@ -141,4 +141,3 @@ impl Texture for ImageTexture {
         }
     }
 }
-

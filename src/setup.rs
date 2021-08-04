@@ -99,7 +99,10 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     data
 }
 
-pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Result<Vec<Color>, Box<dyn error::Error>> {
+pub fn run(
+    pb_run: ProgressBar,
+    pb_int: ProgressBar,
+) -> Result<Vec<Color>, Box<dyn error::Error + Send>> {
     pb_run.set_position(0);
 
     // Camera settings

@@ -1,11 +1,7 @@
-use std::{
-    sync::{
+use std::{error, panic, sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
-    },
-    thread,
-    time::Duration,
-};
+    }, thread, time::Duration};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ray_tracing::render::{self, Color, Image};
@@ -14,7 +10,7 @@ use setup::{IMAGE_HEIGHT, IMAGE_WIDTH, REPETITION};
 mod scenes;
 mod setup;
 
-fn create_image() -> thread::Result<Vec<Color>> {
+fn create_image() -> Result<Vec<Color>, Box<dyn error::Error>> {
     // ProgressBar
     let mp = MultiProgress::new();
 
@@ -56,19 +52,34 @@ fn create_image() -> thread::Result<Vec<Color>> {
 
     let data = thread::spawn(move || {
         let res = setup::run(pb_run.clone(), pb_curr.clone());
+
         for pb in [pb_curr, pb_run] {
             pb.finish();
         }
 
         ab.store(false, Ordering::Release);
 
-        res.expect("terror")
+        // as we are returning a Box<dyn error::Error> we can not move to to the
+        // parent thread :(
+        res
     });
 
-    mp.join().map_err(|err| Box::new(err) as _)?;
-    ticker.join()?;
+    let mp_handler = thread::spawn(move || mp.join());
 
-    data.join()
+    // special case of a panic happening
+    if let Err(err) = ticker.join() {
+        panic::resume_unwind(err);
+    }
+
+    match mp_handler.join() {
+        Ok(res) => res?,
+        Err(err) => panic::resume_unwind(err)
+    }
+
+    match data.join() {
+        Ok(res) => res.map_err(|err| err as _),
+        Err(err) => panic::resume_unwind(err),
+    }
 }
 
 fn main() {

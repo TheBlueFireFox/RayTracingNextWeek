@@ -38,8 +38,11 @@ impl Render<'_> for ImageHolder {
     }
 }
 
-pub fn read<P: AsRef<Path>>(path: P) -> Result<ImageHolder, Box<dyn error::Error>> {
-    let img = Reader::open(path)?.decode()?;
+pub fn read<P: AsRef<Path>>(path: P) -> Result<ImageHolder, Box<dyn error::Error + Send>> {
+    let img = Reader::open(path)
+        .map_err(|err| Box::new(err) as _)?
+        .decode()
+        .map_err(|err| Box::new(err) as _)?;
 
     let pixel = img
         .to_rgb8()
