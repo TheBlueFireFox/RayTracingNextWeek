@@ -1,20 +1,25 @@
 use std::{cell::RefCell, sync::Arc};
 
-use ray_tracing::{
-    hittable::HittableList,
-    material::{Dielectric, Lambertian, Mat, Metal},
-    rand_range,
-    ray::{Point, Vec3},
-    render::Color,
-    sphere::{MovingSphere, Sphere},
-    texture::{CheckerTexture, NoiseTexture},
-};
+use ray_tracing::{hittable::HittableList, material::{Dielectric, Lambertian, Mat, Metal}, rand_range, ray::{Point, Vec3}, render::Color, sphere::{MovingSphere, Sphere}, texture::{CheckerTexture, ImageTexture, NoiseTexture}};
 
 #[allow(unused)]
 pub enum Worlds {
     TwoPerlinSpheres,
     TwoSpheres,
     RandomScene,
+    Earth
+}
+
+pub fn earth() -> HittableList {
+    let mut world = HittableList::new();
+
+    let earth_texture = ImageTexture::new("assets/earthmap.jpg").expect("the asset should exist");
+    let earth_surface = Lambertian::with_texture(earth_texture);
+    let globe = Sphere::new([0.0,0.0,0.0].into(), 2.0, Arc::new(earth_surface));
+
+    world.add(globe);
+
+    world
 }
 
 pub fn two_perlin_spheres() -> HittableList {

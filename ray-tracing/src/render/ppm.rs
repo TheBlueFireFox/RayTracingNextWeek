@@ -1,7 +1,10 @@
 use crate::render::Render;
-use std::{fmt::Write, fs, io, path::Path};
+use std::{error, fmt::Write, fs, path::Path};
 
-pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(image: T, path: P) -> Result<(), io::Error> {
+pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(
+    image: T,
+    path: P,
+) -> Result<(), Box<dyn error::Error>> {
     let img = image.image();
 
     const LINE_LENGTH: usize = 3 * 3 + 3; // => 255 255 255\n
@@ -40,7 +43,8 @@ pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(image: T, path: P) -> Result<(), 
             format!("{}.ppm", path)
         },
         &s,
-    )
+    )?;
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 use crate::helpers;
 
 pub type Point = helpers::cvec::Point<f64>;
-pub type Vec3  = helpers::cvec::Vec3<f64>;
+pub type Vec3 = helpers::cvec::Vec3<f64>;
 
 pub struct Ray {
     orig: Point,

@@ -12,7 +12,7 @@ use ray_tracing::{
 
 use crate::scenes::{self, Worlds};
 
-pub const WORLD: Worlds = Worlds::TwoPerlinSpheres;
+pub const WORLD: Worlds = Worlds::Earth;
 
 pub const REPETITION: usize = 2;
 pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -116,6 +116,7 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Vec<Color> {
         }
         Worlds::TwoSpheres => scenes::two_spheres(),
         Worlds::TwoPerlinSpheres => scenes::two_perlin_spheres(),
+        Worlds::Earth => scenes::earth(),
     };
 
     // Camera

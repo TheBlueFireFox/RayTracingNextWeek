@@ -1,6 +1,12 @@
-use std::sync::Arc;
+use std::{error, path::Path, sync::Arc};
 
-use crate::{perlin::Perlin, ray::Point, render::Color};
+use crate::{
+    clamp,
+    helpers::loader::{self, ImageHolder},
+    perlin::Perlin,
+    ray::Point,
+    render::Color,
+};
 
 pub trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: &Point) -> Color;
@@ -87,3 +93,49 @@ impl Default for NoiseTexture {
         Self::new()
     }
 }
+
+#[derive(Default, Debug)]
+pub struct ImageTexture {
+    img: Option<ImageHolder>,
+}
+
+impl ImageTexture {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn error::Error>> {
+        let img = loader::read(path)?;
+        Ok(Self { img: Some(img) })
+    }
+}
+
+impl Texture for ImageTexture {
+    fn value(&self, u: f64, v: f64, _p: &Point) -> Color {
+        match self.img {
+            None => [0.0, 1.0, 1.0].into(), // If we have no texture data, then return solid cyan as a debugging aid.
+            Some(ref img) => {
+                // Clamp input texture coordinates to [0,1] x [1,0]
+                let u = clamp(u, 0.0, 1.0);
+                let v = 1.0 - clamp(v, 0.0, 1.0); // Flip V to image coordinates
+
+                let calc = |a, b: usize| {
+                    let mut res = (a * (b as f64)) as usize;
+
+                    // Clamp integer mapping, since actual coordinates should be less than 1.0
+                    if res >= b {
+                        res = b - 1;
+                    }
+                    res
+                };
+
+                let i = calc(u, img.width());
+                let j = calc(v, img.height());
+
+                const COLOR_SCALE: f64 = 1.0 / 255.0;
+
+                let pixel = img.pixel(i, j);
+                let calc = |v| COLOR_SCALE * v;
+
+                [calc(pixel.x()), calc(pixel.y()), calc(pixel.z())].into()
+            }
+        }
+    }
+}
+

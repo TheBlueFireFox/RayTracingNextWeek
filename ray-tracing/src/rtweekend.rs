@@ -11,7 +11,7 @@ pub fn degrees_to_radians(deg: f64) -> f64 {
 }
 
 #[inline]
-pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
+pub fn clamp<T: PartialOrd>(x: T, min: T, max: T) -> T {
     if x < min {
         min
     } else if x > max {

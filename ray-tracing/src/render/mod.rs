@@ -1,7 +1,7 @@
-mod ppm;
 mod png;
+mod ppm;
 
-use std::{io, path::Path};
+use std::{error, path::Path};
 
 use helpers::cvec;
 
@@ -9,6 +9,7 @@ use crate::helpers;
 
 pub type Color = cvec::Color<f64>;
 
+#[derive(Clone, Copy)]
 pub struct Image<'a> {
     pixels: &'a [Color],
     height: usize,
@@ -39,25 +40,28 @@ impl<'a> Image<'a> {
 }
 
 impl<'a> Render<'a> for Image<'a> {
-    fn image(&self) -> &Image<'_> {
-        self
+    fn image(&self) -> Image<'_> {
+        *self
     }
 }
 
 pub trait Render<'a> {
-    fn image(&self) -> &Image<'_>;
+    fn image(&self) -> Image<'_>;
 }
 
 #[allow(unused)]
 pub enum FileFormat {
     PPM,
-    PNG
+    PNG,
 }
 
-pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(image: T, path: P, format: FileFormat) -> Result<(), io::Error> {
+pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(
+    image: T,
+    path: P,
+    format: FileFormat,
+) -> Result<(), Box<dyn error::Error>> {
     match format {
         FileFormat::PPM => ppm::save(image, path),
         FileFormat::PNG => png::save(image, path),
     }
 }
-
