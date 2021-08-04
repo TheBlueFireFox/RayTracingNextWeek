@@ -115,12 +115,15 @@ impl Texture for ImageTexture {
                 let u = clamp(u, 0.0, 1.0);
                 let v = 1.0 - clamp(v, 0.0, 1.0); // Flip V to image coordinates
 
-                let calc = |a, b: usize| {
-                    let mut res = (a * (b as f64)) as usize;
+                let calc = |index, base: usize| {
+                    let res = index * (base as f64);
+                    debug_assert!(res >= 0.0, "The value is below zero");
+
+                    let mut res = res as usize;
 
                     // Clamp integer mapping, since actual coordinates should be less than 1.0
-                    if res >= b {
-                        res = b - 1;
+                    if res >= base {
+                        res = base - 1;
                     }
                     res
                 };

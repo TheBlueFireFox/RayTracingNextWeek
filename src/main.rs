@@ -62,7 +62,7 @@ fn create_image() -> thread::Result<Vec<Color>> {
 
         ab.store(false, Ordering::Release);
 
-        res
+        res.expect("terror")
     });
 
     mp.join().map_err(|err| Box::new(err) as _)?;

@@ -1,3 +1,5 @@
+use std::error;
+
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -97,7 +99,7 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     data
 }
 
-pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Vec<Color> {
+pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Result<Vec<Color>, Box<dyn error::Error>> {
     pb_run.set_position(0);
 
     // Camera settings
@@ -116,7 +118,7 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Vec<Color> {
         }
         Worlds::TwoSpheres => scenes::two_spheres(),
         Worlds::TwoPerlinSpheres => scenes::two_perlin_spheres(),
-        Worlds::Earth => scenes::earth(),
+        Worlds::Earth => scenes::earth()?,
     };
 
     // Camera
@@ -154,5 +156,5 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> Vec<Color> {
         *val /= tmp.len() as f64;
     }
 
-    res
+    Ok(res)
 }
