@@ -1,4 +1,4 @@
-use std::{error, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use crate::{
     clamp,
@@ -100,7 +100,7 @@ pub struct ImageTexture {
 }
 
 impl ImageTexture {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn error::Error + Send>> {
+    pub fn new<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let img = loader::read(path)?;
         Ok(Self { img: Some(img) })
     }
@@ -117,7 +117,7 @@ impl Texture for ImageTexture {
 
                 let calc = |index, base: usize| {
                     let res = index * (base as f64);
-                    debug_assert!(res >= 0.0, "The value is below zero");
+                    assert!(res >= 0.0, "The value is below zero");
 
                     let mut res = res as usize;
 
@@ -134,9 +134,8 @@ impl Texture for ImageTexture {
                 const COLOR_SCALE: f64 = 1.0 / 255.0;
 
                 let pixel = img.pixel(i, j);
-                let calc = |v| COLOR_SCALE * v;
 
-                [calc(pixel.x()), calc(pixel.y()), calc(pixel.z())].into()
+                COLOR_SCALE * *pixel
             }
         }
     }

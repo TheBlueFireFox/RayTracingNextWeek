@@ -49,16 +49,13 @@ pub fn save<'a, T: Render<'a>, P: AsRef<Path>>(
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        cmp::min,
-        io::{self, Read},
-    };
+    use std::{cmp::min, error, io::Read};
     use tempfile;
 
     use crate::render::{ppm::save, Color, Image};
 
     #[test]
-    fn test_rainbow() -> Result<(), io::Error> {
+    fn test_rainbow() -> Result<(), Box<dyn error::Error>> {
         const IMAGE_WIDTH: usize = 256;
         const IMAGE_HEIGHT: usize = 256;
 

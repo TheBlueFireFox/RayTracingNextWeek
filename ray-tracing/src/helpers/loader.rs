@@ -1,4 +1,4 @@
-use std::{error, path::Path};
+use std::{path::Path};
 
 use image::{io::Reader, GenericImageView};
 
@@ -38,14 +38,15 @@ impl Render<'_> for ImageHolder {
     }
 }
 
-pub fn read<P: AsRef<Path>>(path: P) -> Result<ImageHolder, Box<dyn error::Error + Send>> {
-    let img = Reader::open(path)
-        .map_err(|err| Box::new(err) as _)?
-        .decode()
-        .map_err(|err| Box::new(err) as _)?;
+pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<ImageHolder> {
+    let img = Reader::open(path)?
+        .decode()?;
+
+    let height = img.height() as _;
+    let width = img.width() as _;
 
     let pixel = img
-        .to_rgb8()
+        .into_rgb8()
         .pixels()
         .map(|v| {
             let mut tmp = [0.0; 3];
@@ -58,7 +59,7 @@ pub fn read<P: AsRef<Path>>(path: P) -> Result<ImageHolder, Box<dyn error::Error
 
     Ok(ImageHolder {
         pixels: pixel,
-        height: img.height() as _,
-        width: img.width() as _,
+        height,
+        width
     })
 }

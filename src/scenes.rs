@@ -1,4 +1,4 @@
-use std::{cell::RefCell, error, sync::Arc};
+use std::{cell::RefCell, sync::Arc};
 
 use ray_tracing::{
     hittable::HittableList,
@@ -18,8 +18,8 @@ pub enum Worlds {
     Earth,
 }
 
-pub fn earth() -> Result<HittableList, Box<dyn error::Error + Send>> {
-    let mut world = HittableList::new();
+pub fn earth() -> anyhow::Result<HittableList> {
+    let mut world = HittableList::with_capacity(1);
 
     let earth_texture = ImageTexture::new("assets/earthmap.jpg")?;
     let earth_surface = Lambertian::with_texture(earth_texture);

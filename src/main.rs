@@ -1,4 +1,4 @@
-use std::{error, panic, sync::{
+use std::{panic, sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     }, thread, time::Duration};
@@ -10,7 +10,7 @@ use setup::{IMAGE_HEIGHT, IMAGE_WIDTH, REPETITION};
 mod scenes;
 mod setup;
 
-fn create_image() -> Result<Vec<Color>, Box<dyn error::Error>> {
+fn create_image() -> anyhow::Result<Vec<Color>> {
     // ProgressBar
     let mp = MultiProgress::new();
 
@@ -50,6 +50,8 @@ fn create_image() -> Result<Vec<Color>, Box<dyn error::Error>> {
         }
     });
 
+    let mp_handler = thread::spawn(move || mp.join());
+
     let data = thread::spawn(move || {
         let res = setup::run(pb_run.clone(), pb_curr.clone());
 
@@ -64,11 +66,10 @@ fn create_image() -> Result<Vec<Color>, Box<dyn error::Error>> {
         res
     });
 
-    let mp_handler = thread::spawn(move || mp.join());
 
     // special case of a panic happening
     let res = match data.join() {
-        Ok(res) => res.map_err(|err| err as _),
+        Ok(res) => res,
         Err(err) => panic::resume_unwind(err),
     };
 

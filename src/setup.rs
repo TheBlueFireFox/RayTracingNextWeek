@@ -1,4 +1,3 @@
-use std::error;
 
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator};
 
@@ -102,7 +101,7 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
 pub fn run(
     pb_run: ProgressBar,
     pb_int: ProgressBar,
-) -> Result<Vec<Color>, Box<dyn error::Error + Send>> {
+) -> anyhow::Result<Vec<Color>> {
     pb_run.set_position(0);
 
     // Camera settings
