@@ -1,4 +1,4 @@
-use std::{path::Path};
+use std::path::Path;
 
 use image::{io::Reader, GenericImageView};
 
@@ -39,8 +39,7 @@ impl Render<'_> for ImageHolder {
 }
 
 pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<ImageHolder> {
-    let img = Reader::open(path)?
-        .decode()?;
+    let img = Reader::open(path)?.decode()?;
 
     let height = img.height() as _;
     let width = img.width() as _;
@@ -60,6 +59,6 @@ pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<ImageHolder> {
     Ok(ImageHolder {
         pixels: pixel,
         height,
-        width
+        width,
     })
 }

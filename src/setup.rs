@@ -1,4 +1,3 @@
-
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -98,10 +97,7 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     data
 }
 
-pub fn run(
-    pb_run: ProgressBar,
-    pb_int: ProgressBar,
-) -> anyhow::Result<Vec<Color>> {
+pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color>> {
     pb_run.set_position(0);
 
     // Camera settings

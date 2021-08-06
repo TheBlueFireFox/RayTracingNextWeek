@@ -1,7 +1,12 @@
-use std::{panic, sync::{
+use std::{
+    panic,
+    sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
-    }, thread, time::Duration};
+    },
+    thread,
+    time::Duration,
+};
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ray_tracing::render::{self, Color, Image};
@@ -66,7 +71,6 @@ fn create_image() -> anyhow::Result<Vec<Color>> {
         res
     });
 
-
     // special case of a panic happening
     let res = match data.join() {
         Ok(res) => res,
@@ -79,7 +83,7 @@ fn create_image() -> anyhow::Result<Vec<Color>> {
 
     match mp_handler.join() {
         Ok(res) => res?,
-        Err(err) => panic::resume_unwind(err)
+        Err(err) => panic::resume_unwind(err),
     }
 
     res
