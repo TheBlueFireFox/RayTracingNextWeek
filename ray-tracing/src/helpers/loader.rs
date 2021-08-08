@@ -12,6 +12,14 @@ pub struct ImageHolder {
 }
 
 impl ImageHolder {
+    fn new(pixels: Vec<Color>, height: usize, width: usize) -> Self {
+        Self {
+            pixels,
+            height,
+            width,
+        }
+    }
+
     /// Get a reference to the image holder's pixel.
     pub fn pixels(&self) -> &[Color] {
         &self.pixels
@@ -44,7 +52,7 @@ pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<ImageHolder> {
     let height = img.height() as _;
     let width = img.width() as _;
 
-    let pixel = img
+    let pixels = img
         .into_rgb8()
         .pixels()
         .map(|v| {
@@ -56,9 +64,5 @@ pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<ImageHolder> {
         })
         .collect();
 
-    Ok(ImageHolder {
-        pixels: pixel,
-        height,
-        width,
-    })
+    Ok(ImageHolder::new(pixels, height, width))
 }

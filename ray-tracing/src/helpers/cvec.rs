@@ -6,10 +6,7 @@ use std::{
 use rand::distributions::uniform::{SampleRange, SampleUniform};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CVec<T, const N: usize>
-where
-    T: Copy + Default,
-{
+pub struct CVec<T, const N: usize> {
     data: [T; N],
 }
 
@@ -26,8 +23,23 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: Copy + Default,
+    T: num_traits::One + Copy,
 {
+    pub fn ones() -> Self {
+        [T::one(); N].into()
+    }
+}
+
+impl<T, const N: usize> CVec<T, N>
+where
+    T: num_traits::Zero + Copy,
+{
+    pub fn zeros() -> Self {
+        [T::zero(); N].into()
+    }
+}
+
+impl<T, const N: usize> CVec<T, N> {
     pub fn data(&self) -> &[T] {
         &self.data
     }
@@ -43,7 +55,7 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: num_traits::NumRef + Neg<Output = T> + PartialOrd + SampleUniform + Default + Copy,
+    T: num_traits::One + SampleUniform + Copy,
 {
     pub fn random_range<R>(range: R) -> Self
     where
@@ -57,7 +69,12 @@ where
 
         Self { data }
     }
+}
 
+impl<T, const N: usize> CVec<T, N>
+where
+    T: num_traits::NumRef + Neg<Output = T> + PartialOrd + SampleUniform + Copy,
+{
     pub fn random_in_unit_sphere() -> Self {
         loop {
             let p = Self::random_range(-T::one()..T::one());
@@ -71,7 +88,7 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: num_traits::NumRef + Neg<Output = T> + PartialOrd + From<f64> + Default + Copy,
+    T: num_traits::NumRef + Neg<Output = T> + PartialOrd + From<f64> + Copy,
 {
     pub fn near_zero(&self) -> bool {
         const S: f64 = 1e-8;
@@ -101,7 +118,7 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: num_traits::NumRef + From<f64> + Into<f64> + Copy + Default,
+    T: num_traits::NumRef + From<f64> + Into<f64> + Copy,
 {
     pub fn unit_vector(&self) -> Self {
         let l = self.length();
@@ -117,7 +134,6 @@ where
         + From<f64>
         + Into<f64>
         + SampleUniform
-        + Default
         + Copy,
 {
     pub fn random_unit_vector() -> Self {
@@ -133,10 +149,7 @@ where
         }
     }
 }
-impl<T, const N: usize> From<[T; N]> for CVec<T, N>
-where
-    T: Copy + Default,
-{
+impl<T, const N: usize> From<[T; N]> for CVec<T, N> {
     fn from(data: [T; N]) -> Self {
         Self { data }
     }
@@ -144,11 +157,11 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: num_traits::NumRef + Default + Copy,
+    T: num_traits::NumRef + Copy,
 {
     pub fn length_squared(&self) -> T {
         let mut res = T::zero();
-        for val in self.data {
+        for &val in self.data.iter() {
             res = res + val * val;
         }
         res
@@ -157,18 +170,16 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: num_traits::NumRef + From<f64> + Into<f64> + Default + Copy,
+    T: num_traits::NumRef + From<f64> + Into<f64> + Copy,
 {
     pub fn length(&self) -> T {
-        let l: f64 = self.length_squared().into();
-
-        l.sqrt().into()
+        self.length_squared().into().sqrt().into()
     }
 }
 
 impl<T, const N: usize> ops::Add for CVec<T, N>
 where
-    T: num_traits::NumRef + Copy + Default,
+    T: num_traits::NumRef + Copy,
 {
     type Output = Self;
 
@@ -202,7 +213,7 @@ where
 
 impl<T, const N: usize> ops::Neg for CVec<T, N>
 where
-    T: num_traits::NumRef + Neg<Output = T> + Default + Copy,
+    T: num_traits::NumRef + Neg<Output = T> + Copy,
 {
     type Output = Self;
 
@@ -213,7 +224,7 @@ where
 
 impl<T, const N: usize> ops::Mul<Self> for CVec<T, N>
 where
-    T: num_traits::NumRef + Default + Copy,
+    T: num_traits::NumRef + Copy,
 {
     type Output = Self;
 
@@ -230,7 +241,7 @@ where
 
 impl<T, const N: usize> ops::Mul<T> for CVec<T, N>
 where
-    T: num_traits::NumRef + Default + Copy,
+    T: num_traits::NumRef + Copy,
 {
     type Output = Self;
 
@@ -264,7 +275,7 @@ Muls!(usize, isize, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 
 impl<T, const N: usize> ops::Div<T> for CVec<T, N>
 where
-    T: num_traits::NumRef + Default + Copy,
+    T: num_traits::NumRef + Copy,
 {
     type Output = Self;
 
@@ -275,7 +286,7 @@ where
 
 impl<T, const N: usize> ops::AddAssign for CVec<T, N>
 where
-    T: ops::AddAssign + Default + Copy,
+    T: ops::AddAssign + Copy,
 {
     fn add_assign(&mut self, rhs: Self) {
         for i in 0..self.len() {
@@ -286,7 +297,7 @@ where
 
 impl<T, const N: usize> ops::MulAssign<T> for CVec<T, N>
 where
-    T: ops::MulAssign + Default + Copy,
+    T: ops::MulAssign + Copy,
 {
     fn mul_assign(&mut self, rhs: T) {
         for v in self.data.as_mut() {
@@ -297,7 +308,7 @@ where
 
 impl<T, const N: usize> ops::DivAssign<T> for CVec<T, N>
 where
-    T: num_traits::NumAssignRef + Default + Copy,
+    T: num_traits::NumAssignRef + Copy,
 {
     fn div_assign(&mut self, rhs: T) {
         *self *= T::one() / rhs;
@@ -306,7 +317,7 @@ where
 
 impl<T, const N: usize> CVec<T, N>
 where
-    T: num_traits::NumRef + Default + Copy,
+    T: num_traits::NumRef + Copy,
 {
     pub fn dot(&self, r: &Self) -> T {
         let mut res = T::zero();
@@ -335,7 +346,6 @@ where
         + PartialOrd
         + Into<f64>
         + Neg<Output = T>
-        + Default
         + Copy,
     f64: Into<T>,
 {
@@ -349,8 +359,8 @@ where
         };
 
         let r_out_perp = etai_over_etat.into() * (*self + cos_theta * *n);
-        let mut t: f64 = (T::one() - r_out_perp.length_squared()).into();
-        t = -(t.abs().sqrt());
+        let t: f64 = (T::one() - r_out_perp.length_squared()).into();
+        let t = -(t.abs().sqrt());
         let t: T = t.into();
         let r_out_parallel = t * *n;
 
@@ -364,7 +374,7 @@ pub type Point<T> = Vec3<T>;
 
 impl<T> Vec3<T>
 where
-    T: Copy + Default,
+    T: Copy,
 {
     pub fn new(x: T, y: T, z: T) -> Self {
         [x, y, z].into()
@@ -385,7 +395,7 @@ where
 
 impl<T> Vec3<T>
 where
-    T: num_traits::NumRef + Neg<Output = T> + PartialOrd + SampleUniform + Default + Copy,
+    T: num_traits::NumRef + Neg<Output = T> + PartialOrd + SampleUniform + Copy,
 {
     pub fn random_in_unit_disk() -> Self {
         loop {
@@ -400,7 +410,7 @@ where
 }
 impl<T> Vec3<T>
 where
-    T: num_traits::NumAssignRef + Default + Copy,
+    T: num_traits::NumAssignRef + Copy,
 {
     pub fn cross(&self, rhs: &Self) -> Vec3<T> {
         [

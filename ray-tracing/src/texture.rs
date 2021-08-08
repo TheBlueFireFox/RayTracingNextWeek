@@ -119,13 +119,14 @@ impl Texture for ImageTexture {
                     let res = index * (base as f64);
                     assert!(res >= 0.0, "The value is below zero");
 
-                    let mut res = res as usize;
+                    let res = res as usize;
 
                     // Clamp integer mapping, since actual coordinates should be less than 1.0
                     if res >= base {
-                        res = base - 1;
+                        base - 1
+                    } else {
+                        res
                     }
-                    res
                 };
 
                 let i = calc(u, img.width());
