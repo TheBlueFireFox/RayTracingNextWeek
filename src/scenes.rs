@@ -40,7 +40,7 @@ pub fn cornell_box() -> HittableList {
         world.add(xz);
     }
 
-    world.add(rect::XY::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 255.0));
+    world.add(rect::XY::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
 
     world
 }

@@ -51,7 +51,7 @@ impl Config {
     }
 
     fn fix_image_height(&mut self) {
-        self.image_height = (self.image_width as f64 / self.aspect_ratio) as _;
+        self.image_height = (self.image_width() as f64 / self.aspect_ratio()) as _;
     }
 
     /// Set the config's image width.
@@ -191,6 +191,7 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         Worlds::SimpleLight => {
             lookfrom = [26.0, 3.0, 6.0].into();
             lookat = [0.0, 2.0, 0.0].into();
+            world_conf.samples_per_pixel = 400;
             world_conf.background = Color::zeros();
             scenes::simple_light()
         }
@@ -212,7 +213,7 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         lookat,
         vup,
         vfov,
-        ASPECT_RATIO,
+        world_conf.aspect_ratio,
         aperture,
         focus_dist,
         0.0,
@@ -234,25 +235,22 @@ pub fn run(
     pb_run.set_position(0);
 
     // run
-    let mut tmp: Vec<_> = (0..conf.rep)
-        .map(|_| Some(irun(world, &conf, pb_int.clone(), &cam)))
+    // SAFETY: the unwrap is safe here as we know
+    // that there allways will be a result.
+    let mut res = (0..conf.rep)
+        .map(|_| irun(world, &conf, pb_int.clone(), &cam))
         .progress_with(pb_run)
-        .collect();
+        .reduce(|mut acc, v| {
+            for (a, b) in acc.iter_mut().zip(v.iter()) {
+                *a += *b;
+            }
+            acc
+        })
+        .unwrap();
 
-    // prepare the solution
-    // SAFETY: all the unwraps are safe here,
-    // as above all the results get to be combined.
-    let mut res = tmp[0].take().unwrap();
-
-    for arr in tmp.iter().skip(1) {
-        let arr = arr.as_ref().unwrap();
-        for (i, val) in arr.iter().enumerate() {
-            res[i] += *val;
-        }
-    }
-
+    let len = conf.rep as f64;
     for val in res.iter_mut() {
-        *val /= tmp.len() as f64;
+        *val /= len;
     }
 
     Ok(res)
