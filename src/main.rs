@@ -10,12 +10,16 @@ use std::{
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ray_tracing::render::{self, Color, Image};
-use setup::{IMAGE_HEIGHT, IMAGE_WIDTH, REPETITION};
+use setup::Config;
 
 mod scenes;
 mod setup;
 
-fn create_image() -> anyhow::Result<Vec<Color>> {
+fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
+    // setup render
+    let settings = setup::setup()?;
+    let conf = settings.conf.clone();
+
     // ProgressBar
     let mp = MultiProgress::new();
 
@@ -36,8 +40,8 @@ fn create_image() -> anyhow::Result<Vec<Color>> {
         pb
     };
 
-    let pb_run = setup(REPETITION);
-    let pb_curr = setup(IMAGE_HEIGHT);
+    let pb_run = setup(conf.rep);
+    let pb_curr = setup(conf.image_height());
 
     let pb_run1 = pb_run.clone();
     let pb_curr1 = pb_curr.clone();
@@ -58,7 +62,7 @@ fn create_image() -> anyhow::Result<Vec<Color>> {
     let mp_handler = thread::spawn(move || mp.join());
 
     let data = thread::spawn(move || {
-        let res = setup::run(pb_run.clone(), pb_curr.clone());
+        let res = setup::run(&settings, pb_run.clone(), pb_curr.clone());
 
         for pb in [pb_curr, pb_run] {
             pb.finish();
@@ -86,7 +90,9 @@ fn create_image() -> anyhow::Result<Vec<Color>> {
         Err(err) => panic::resume_unwind(err),
     }
 
-    res
+    let tmp = res?;
+
+    Ok((conf, tmp))
 }
 
 fn main() {
@@ -95,10 +101,10 @@ fn main() {
 
     println!("Running");
 
-    let data = create_image().expect("unable to get the data, due to some error");
+    let (conf, data) = create_image().expect("unable to get the data, due to some error");
 
     println!("Writing data");
-    let img = Image::new(&data, IMAGE_HEIGHT, IMAGE_WIDTH);
+    let img = Image::new(&data, conf.image_height(), conf.image_width());
 
     render::save(img, path, render::FileFormat::PNG).expect("Something went terribly wrong here");
     println!("Done");

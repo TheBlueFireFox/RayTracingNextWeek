@@ -24,6 +24,7 @@ pub trait Material: Send + Sync {
     }
 }
 
+#[derive(Clone)]
 pub struct Lambertian {
     albedo: Arc<dyn Texture>,
 }
@@ -62,6 +63,7 @@ impl Material for Lambertian {
     }
 }
 
+#[derive(Clone)]
 pub struct Metal {
     pub albedo: Color,
     pub fuzz: f64,
@@ -93,6 +95,7 @@ impl Material for Metal {
     }
 }
 
+#[derive(Clone)]
 pub struct Dielectric {
     ir: f64,
 }
@@ -145,6 +148,7 @@ impl Material for Dielectric {
     }
 }
 
+#[derive(Clone)]
 pub struct DiffuseLight {
     emit: Arc<dyn Texture>,
 }

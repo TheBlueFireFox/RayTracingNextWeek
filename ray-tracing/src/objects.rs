@@ -1,6 +1,11 @@
 use std::{f64::consts::PI, sync::Arc};
 
-use crate::{aabb::Aabb, hittable::{HitRecord, Hittable}, material::{Mat, Material}, ray::{Point, Ray, Vec3}};
+use crate::{
+    aabb::Aabb,
+    hittable::{HitRecord, Hittable},
+    material::{Mat, Material},
+    ray::{Point, Ray, Vec3},
+};
 
 pub struct Sphere {
     pub center: Point,
@@ -156,66 +161,219 @@ impl Hittable for MovingSphere {
     }
 }
 
-pub struct XYRect {
-    mp: Mat,
-    x0: f64,
-    x1: f64,
-    y0: f64,
-    y1: f64,
-    k: f64,
-}
+pub mod rect {
+    use super::*;
 
-impl XYRect {
-    pub fn new<M: Material + 'static>(mp: M, x0: f64, x1: f64, y0: f64, y1: f64, k: f64) -> Self {
-        Self {
-            mp: Arc::new(mp),
-            x0,
-            x1,
-            y0,
-            y1,
-            k,
-        }
-    }
-}
-
-impl Hittable for XYRect {
-    fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
-        // The bounding box must have non-zero width in each dimension, so pad the Z
-        // dimension a small amount.
-        *output = Aabb::new(
-            [self.x0, self.y0, self.k - 0.0001].into(),
-            [self.x1, self.y1, self.k + 0.0001].into(),
-        );
-        true
+    pub struct XY {
+        mp: Mat,
+        x0: f64,
+        x1: f64,
+        y0: f64,
+        y1: f64,
+        k: f64,
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        let org = r.origin();
-        let dir = r.direction();
-        let t = (self.k - org.z()) / dir.z();
+    impl XY {
+        pub fn new<M: Material + 'static>(
+            mp: M,
+            x0: f64,
+            x1: f64,
+            y0: f64,
+            y1: f64,
+            k: f64,
+        ) -> Self {
+            Self {
+                mp: Arc::new(mp),
+                x0,
+                x1,
+                y0,
+                y1,
+                k,
+            }
+        }
+    }
 
-        let bounds = |t, min, max| t < min || t > max;
-
-        if bounds(t, t_min, t_max) {
-            return false;
+    impl Hittable for XY {
+        fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+            // The bounding box must have non-zero width in each dimension, so pad the Z
+            // dimension a small amount.
+            *output = Aabb::new(
+                [self.x0, self.y0, self.k - 0.0001].into(),
+                [self.x1, self.y1, self.k + 0.0001].into(),
+            );
+            true
         }
 
-        let x = org.x() + t * dir.x();
-        let y = org.y() + t * dir.y();
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+            let org = r.origin();
+            let dir = r.direction();
+            let t = (self.k - org.z()) / dir.z();
 
-        if bounds(x, self.x0, self.x1) || bounds(y, self.y0, self.y1) {
-            return false;
+            let bounds = |t, min, max| t < min || t > max;
+
+            if bounds(t, t_min, t_max) {
+                return false;
+            }
+
+            let x = org.x() + t * dir.x();
+            let y = org.y() + t * dir.y();
+
+            if bounds(x, self.x0, self.x1) || bounds(y, self.y0, self.y1) {
+                return false;
+            }
+
+            rec.u = (x - self.x0) / (self.x1 - self.x0);
+            rec.v = (y - self.y0) / (self.y1 - self.y0);
+            rec.t = t;
+
+            let outward_normal = [0.0, 0.0, 1.0].into();
+            rec.set_face_normal(r, &outward_normal);
+            rec.mat = Some(self.mp.clone());
+            rec.p = r.at(t);
+
+            true
+        }
+    }
+
+    pub struct XZ {
+        mp: Mat,
+        x0: f64,
+        x1: f64,
+        z0: f64,
+        z1: f64,
+        k: f64,
+    }
+
+    impl XZ {
+        pub fn new<M: Material + 'static>(
+            mp: M,
+            x0: f64,
+            x1: f64,
+            z0: f64,
+            z1: f64,
+            k: f64,
+        ) -> Self {
+            Self {
+                mp: Arc::new(mp),
+                x0,
+                x1,
+                z0,
+                z1,
+                k,
+            }
+        }
+    }
+
+    impl Hittable for XZ {
+        fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+            // The bounding box must have non-zero width in each dimension, so pad the Y
+            // dimension a small amount.
+            *output = Aabb::new(
+                [self.x0, self.k - 0.0001, self.z0].into(),
+                [self.x1, self.k + 0.0001, self.z1].into(),
+            );
+            true
         }
 
-        rec.u = (x - self.x0) / (self.x1 - self.x0);
-        rec.v = (y - self.y0) / (self.y1 - self.y0);
-        rec.t = t;
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+            let org = r.origin();
+            let dir = r.direction();
+            let t = (self.k - org.y()) / dir.y();
 
-        let outward_normal = [0.0, 0.0, 0.1].into();
-        rec.set_face_normal(r, &outward_normal);
-        rec.mat = Some(self.mp.clone());
-        rec.p = r.at(t);
+            let bounds = |t, min, max| t < min || t > max;
 
-        true
+            if bounds(t, t_min, t_max) {
+                return false;
+            }
+
+            let x = org.x() + t * dir.x();
+            let z = org.z() + t * dir.z();
+
+            if bounds(x, self.x0, self.x1) || bounds(z, self.z0, self.z1) {
+                return false;
+            }
+
+            rec.u = (x - self.x0) / (self.x1 - self.x0);
+            rec.v = (z - self.z0) / (self.z1 - self.z0);
+            rec.t = t;
+
+            let outward_normal = [0.0, 1.0, 0.0].into();
+            rec.set_face_normal(r, &outward_normal);
+            rec.mat = Some(self.mp.clone());
+            rec.p = r.at(t);
+
+            true
+        }
+    }
+
+    pub struct YZ {
+        mp: Mat,
+        y0: f64,
+        y1: f64,
+        z0: f64,
+        z1: f64,
+        k: f64,
+    }
+
+    impl YZ {
+        pub fn new<M: Material + 'static>(
+            mp: M,
+            y0: f64,
+            y1: f64,
+            z0: f64,
+            z1: f64,
+            k: f64,
+        ) -> Self {
+            Self {
+                mp: Arc::new(mp),
+                y0,
+                y1,
+                z0,
+                z1,
+                k,
+            }
+        }
+    }
+
+    impl Hittable for YZ {
+        fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+            // The bounding box must have non-zero width in each dimension, so pad the X
+            // dimension a small amount.
+            *output = Aabb::new(
+                [self.k - 0.0001, self.y0, self.z0].into(),
+                [self.k + 0.0001, self.y1, self.z1].into(),
+            );
+            true
+        }
+
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+            let org = r.origin();
+            let dir = r.direction();
+            let t = (self.k - org.x()) / dir.x();
+
+            let bounds = |t, min, max| t < min || t > max;
+
+            if bounds(t, t_min, t_max) {
+                return false;
+            }
+
+            let y = org.y() + t * dir.y();
+            let z = org.z() + t * dir.z();
+
+            if bounds(y, self.y0, self.y1) || bounds(z, self.z0, self.z1) {
+                return false;
+            }
+
+            rec.u = (y - self.y0) / (self.y1 - self.y0);
+            rec.v = (z - self.z0) / (self.z1 - self.z0);
+            rec.t = t;
+
+            let outward_normal = [1.0, 0.0, 0.0].into();
+            rec.set_face_normal(r, &outward_normal);
+            rec.mat = Some(self.mp.clone());
+            rec.p = r.at(t);
+
+            true
+        }
     }
 }

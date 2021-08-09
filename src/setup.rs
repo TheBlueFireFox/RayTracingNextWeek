@@ -5,28 +5,84 @@ use rayon::prelude::*;
 use ray_tracing::{
     camera::Camera,
     clamp,
-    hittable::{HitRecord, Hittable},
+    hittable::{HitRecord, Hittable, HittableList},
     ray::{Point, Ray, Vec3},
     render::Color,
 };
 
 use crate::scenes::{self, Worlds};
 
-pub const WORLD: Worlds = Worlds::SimpleLight;
+const WORLD: Worlds = Worlds::CornellBox;
 
-pub const REPETITION: usize = 2;
-pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
-pub const IMAGE_WIDTH: usize = 160 * 4;
-pub const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-pub const SAMPLES_PER_PIXEL: usize = 100;
-pub const MAX_DEPTH: usize = 50;
-pub const GAMMA: f64 = 2.0;
+const REPETITION: usize = 2;
+const ASPECT_RATIO: f64 = 16.0 / 9.0;
+const IMAGE_WIDTH: usize = 160 * 4;
+const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
+const SAMPLES_PER_PIXEL: usize = 100;
+const MAX_DEPTH: usize = 50;
+const GAMMA: f64 = 2.0;
 
-fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H) -> Color {
-    ray_color_inner(r, background, world, MAX_DEPTH)
+#[derive(Clone)]
+pub struct Config {
+    pub rep: usize,
+    aspect_ratio: f64,
+    image_width: usize,
+    image_height: usize,
+    pub samples_per_pixel: usize,
+    pub max_depth: usize,
+    pub gamma: f64,
+    pub background: Color,
 }
 
-fn ray_color_inner<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) -> Color {
+impl Config {
+    /// Get a reference to the config's aspect ratio.
+    pub fn aspect_ratio(&self) -> f64 {
+        self.aspect_ratio
+    }
+
+    /// Get a reference to the config's image width.
+    pub fn image_width(&self) -> usize {
+        self.image_width
+    }
+
+    /// Get a reference to the config's image height.
+    pub fn image_height(&self) -> usize {
+        self.image_height
+    }
+
+    fn fix_image_height(&mut self) {
+        self.image_height = (self.image_width as f64 / self.aspect_ratio) as _;
+    }
+
+    /// Set the config's image width.
+    pub fn set_image_width(&mut self, image_width: usize) {
+        self.image_width = image_width;
+        self.fix_image_height();
+    }
+
+    /// Set the config's aspect ratio.
+    pub fn set_aspect_ratio(&mut self, aspect_ratio: f64) {
+        self.aspect_ratio = aspect_ratio;
+        self.fix_image_height();
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            rep: REPETITION,
+            aspect_ratio: ASPECT_RATIO,
+            image_width: IMAGE_WIDTH,
+            image_height: IMAGE_HEIGHT,
+            samples_per_pixel: SAMPLES_PER_PIXEL,
+            max_depth: MAX_DEPTH,
+            gamma: GAMMA,
+            background: Color::zeros(),
+        }
+    }
+}
+
+fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) -> Color {
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth == 0 {
         return Color::zeros();
@@ -52,23 +108,22 @@ fn ray_color_inner<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: u
     if !mat.scatter(r, &rec, &mut attenuation, &mut scattered) {
         emitted
     } else {
-        emitted + attenuation * ray_color_inner(&scattered, background, world, depth - 1)
+        emitted + attenuation * ray_color(&scattered, background, world, depth - 1)
     }
 }
 
-fn irun<H: Hittable>(world: &H, background: &Color, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
+fn irun<H: Hittable>(world: &H, conf: &Config, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     pb.set_position(0);
 
     // Render
-
     let calc = |o, l| ((o as f64) + ray_tracing::rand_range(0.0..1.0)) / (l - 1) as f64;
 
     // Divide the color by the number of samples
-    const FIX_SCALE: f64 = 1.0 / (SAMPLES_PER_PIXEL as f64);
+    let fix_scale: f64 = 1.0 / (conf.samples_per_pixel as f64);
 
     // gamma and clamping the values
     let fix_pixel_val = |v: f64| {
-        let v = (FIX_SCALE * v).powf(1.0 / GAMMA);
+        let v = (fix_scale * v).powf(1.0 / conf.gamma);
         let c = clamp(v, 0.0, 0.999);
         256.0 * c
     };
@@ -81,19 +136,19 @@ fn irun<H: Hittable>(world: &H, background: &Color, pb: ProgressBar, cam: &Camer
         res.into()
     };
 
-    let data: Vec<_> = (0..IMAGE_HEIGHT)
+    let data: Vec<_> = (0..conf.image_height)
         .into_par_iter()
         .rev()
         .progress_with(pb)
         .flat_map(|j| {
-            (0..IMAGE_WIDTH)
+            (0..conf.image_width)
                 .map(|i| {
-                    let pixel_color = (0..SAMPLES_PER_PIXEL)
+                    let pixel_color = (0..conf.samples_per_pixel)
                         .map(|_| {
-                            let v = calc(j, IMAGE_HEIGHT);
-                            let u = calc(i, IMAGE_WIDTH);
+                            let v = calc(j, conf.image_height);
+                            let u = calc(i, conf.image_width);
                             let r = cam.get_ray(u, v);
-                            ray_color(&r, background, world)
+                            ray_color(&r, &conf.background, world, conf.max_depth)
                         })
                         .reduce(|acc, v| acc + v)
                         .expect("This iteration should never yield a None");
@@ -105,8 +160,16 @@ fn irun<H: Hittable>(world: &H, background: &Color, pb: ProgressBar, cam: &Camer
     data
 }
 
-pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color>> {
-    pb_run.set_position(0);
+pub struct WorldSettings {
+    pub conf: Config,
+    world: HittableList,
+    cam: Camera,
+}
+
+pub fn setup() -> anyhow::Result<WorldSettings> {
+    // World settigns
+    let mut world_conf = Config::default();
+    world_conf.background = [0.7, 0.8, 1.0].into();
 
     // Camera settings
     let mut lookfrom = Point::new(13.0, 2.0, 3.0);
@@ -114,10 +177,9 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color
     let vup = Point::new(0.0, 1.0, 0.0);
     let focus_dist = 10.0;
     let mut aperture = 0.0;
-    let vfov = 20.0;
+    let mut vfov = 20.0;
 
     // World
-    let mut background = [0.7, 0.8, 1.0].into();
     let world = match WORLD {
         Worlds::RandomScene => {
             aperture = 0.1;
@@ -127,10 +189,20 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color
         Worlds::TwoPerlinSpheres => scenes::two_perlin_spheres(),
         Worlds::Earth => scenes::earth()?,
         Worlds::SimpleLight => {
-            lookfrom = [26.0,3.0,6.0].into();
-            lookat = [0.0,2.0,0.0].into();
-            background = Color::zeros();
+            lookfrom = [26.0, 3.0, 6.0].into();
+            lookat = [0.0, 2.0, 0.0].into();
+            world_conf.background = Color::zeros();
             scenes::simple_light()
+        }
+        Worlds::CornellBox => {
+            world_conf.set_aspect_ratio(1.0);
+            world_conf.set_image_width(600);
+            world_conf.samples_per_pixel = 200;
+            world_conf.background = Color::zeros();
+            lookfrom = [278.0, 278.0, -800.0].into();
+            lookat = [278.0, 278.0, 0.0].into();
+            vfov = 40.0;
+            scenes::cornell_box()
         }
     };
 
@@ -147,9 +219,23 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color
         1.0,
     );
 
+    Ok(WorldSettings {
+        conf: world_conf,
+        world,
+        cam,
+    })
+}
+
+pub fn run(
+    WorldSettings { conf, world, cam }: &WorldSettings,
+    pb_run: ProgressBar,
+    pb_int: ProgressBar,
+) -> anyhow::Result<Vec<Color>> {
+    pb_run.set_position(0);
+
     // run
-    let mut tmp: Vec<_> = (0..REPETITION)
-        .map(|_| Some(irun(&world, &background, pb_int.clone(), &cam)))
+    let mut tmp: Vec<_> = (0..conf.rep)
+        .map(|_| Some(irun(world, &conf, pb_int.clone(), &cam)))
         .progress_with(pb_run)
         .collect();
 

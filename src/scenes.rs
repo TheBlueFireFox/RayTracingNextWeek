@@ -1,6 +1,14 @@
 use std::{cell::RefCell, sync::Arc};
 
-use ray_tracing::{hittable::HittableList, material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal}, objects::{MovingSphere, Sphere, XYRect}, rand_range, ray::{Point, Vec3}, render::Color, texture::{CheckerTexture, ImageTexture, NoiseTexture}};
+use ray_tracing::{
+    hittable::HittableList,
+    material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal},
+    objects::{rect, MovingSphere, Sphere},
+    rand_range,
+    ray::{Point, Vec3},
+    render::Color,
+    texture::{CheckerTexture, ImageTexture, NoiseTexture},
+};
 
 #[allow(unused)]
 pub enum Worlds {
@@ -8,7 +16,33 @@ pub enum Worlds {
     TwoSpheres,
     RandomScene,
     SimpleLight,
+    CornellBox,
     Earth,
+}
+
+pub fn cornell_box() -> HittableList {
+    let mut world = HittableList::new();
+
+    let red = Lambertian::new([0.65, 0.05, 0.05].into());
+    let white = Lambertian::new([0.73, 0.73, 0.73].into());
+    let green = Lambertian::new([0.12, 0.45, 0.15].into());
+    let light = DiffuseLight::new([15.0, 15.0, 15.0].into());
+
+    for (k, mp) in [(555.0, green), (0.0, red)] {
+        let yz = rect::YZ::new(mp, 0.0, 555.0, 0.0, 555.0, k);
+        world.add(yz);
+    }
+
+    world.add(rect::XZ::new(light, 213.0, 343.0, 227.0, 332.0, 554.0));
+
+    for k in [555.0, 0.0] {
+        let xz = rect::XZ::new(white.clone(), 0.0, 555.0, 0.0, 555.0, k);
+        world.add(xz);
+    }
+
+    world.add(rect::XY::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 255.0));
+
+    world
 }
 
 pub fn simple_light() -> HittableList {
@@ -26,7 +60,7 @@ pub fn simple_light() -> HittableList {
     }
 
     let difflight = DiffuseLight::new([4.0, 4.0, 4.0].into());
-    let rect = XYRect::new(difflight, 3.0,5.0,1.0,3.0,-2.0);
+    let rect = rect::XY::new(difflight, 3.0, 5.0, 1.0, 3.0, -2.0);
     world.add(rect);
 
     world
