@@ -36,7 +36,7 @@ impl ImageHolder {
     }
 
     pub fn pixel(&self, x: usize, y: usize) -> &Color {
-        &self.pixels()[y * self.height + x]
+        &self.pixels()[y * self.width() + x]
     }
 }
 

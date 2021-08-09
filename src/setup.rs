@@ -2,11 +2,17 @@ use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator};
 
 use rayon::prelude::*;
 
-use ray_tracing::{camera::Camera, clamp, hittable::Hittable, ray::{Point, Ray, Vec3}, render::Color};
+use ray_tracing::{
+    camera::Camera,
+    clamp,
+    hittable::{HitRecord, Hittable},
+    ray::{Point, Ray, Vec3},
+    render::Color,
+};
 
 use crate::scenes::{self, Worlds};
 
-pub const WORLD: Worlds = Worlds::RandomScene;
+pub const WORLD: Worlds = Worlds::Earth;
 
 pub const REPETITION: usize = 2;
 pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -16,9 +22,8 @@ pub const SAMPLES_PER_PIXEL: usize = 100;
 pub const MAX_DEPTH: usize = 50;
 pub const GAMMA: f64 = 2.0;
 
-
 fn ray_color<H: Hittable>(r: &Ray, world: &H) -> Color {
-   ray_color_inner(r, world, MAX_DEPTH)
+    ray_color_inner(r, world, MAX_DEPTH)
 }
 
 fn ray_color_inner<H: Hittable>(r: &Ray, world: &H, depth: usize) -> Color {
@@ -26,7 +31,7 @@ fn ray_color_inner<H: Hittable>(r: &Ray, world: &H, depth: usize) -> Color {
         return Color::zeros();
     }
 
-    let mut rec = Default::default();
+    let mut rec = HitRecord::default();
 
     if world.hit(r, 0.001, f64::INFINITY, &mut rec) {
         let mut scattered = Ray::new(Vec3::zeros(), Vec3::zeros());
@@ -53,21 +58,21 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     let calc = |o, l| ((o as f64) + ray_tracing::rand_range(0.0..1.0)) / (l - 1) as f64;
 
     // Divide the color by the number of samples
-    let fix_scale = 1.0 / (SAMPLES_PER_PIXEL as f64);
+    const FIX_SCALE : f64 = 1.0 / (SAMPLES_PER_PIXEL as f64);
 
     // gamma and clamping the values
     let fix_pixel_val = |v: f64| {
-        let v = (fix_scale * v).powf(1.0 / GAMMA);
+        let v = (FIX_SCALE * v).powf(1.0 / GAMMA);
         let c = clamp(v, 0.0, 0.999);
         256.0 * c
     };
 
     let fix_pixel = |p: Color| {
-        let r = fix_pixel_val(p.x());
-        let g = fix_pixel_val(p.y());
-        let b = fix_pixel_val(p.z());
-
-        Color::new(r, g, b)
+        let mut res = [p.x(), p.y(), p.z()];
+        for v in res.as_mut() {
+            *v = fix_pixel_val(*v);
+        }
+        res.into()
     };
 
     let data: Vec<_> = (0..IMAGE_HEIGHT)
@@ -77,15 +82,15 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
         .flat_map(|j| {
             (0..IMAGE_WIDTH)
                 .map(|i| {
-                    let mut pixel_color = Color::zeros();
-
-                    for _ in 0..SAMPLES_PER_PIXEL {
-                        let v = calc(j, IMAGE_HEIGHT);
-                        let u = calc(i, IMAGE_WIDTH);
-                        let r = cam.get_ray(u, v);
-                        pixel_color += ray_color(&r, world);
-                    }
-
+                    let pixel_color = (0..SAMPLES_PER_PIXEL)
+                        .map(|_| {
+                            let v = calc(j, IMAGE_HEIGHT);
+                            let u = calc(i, IMAGE_WIDTH);
+                            let r = cam.get_ray(u, v);
+                            ray_color(&r, world)
+                        })
+                        .reduce(|acc, v| acc + v)
+                        .expect("This iteration should never yield a None");
                     fix_pixel(pixel_color)
                 })
                 .collect::<Vec<_>>()

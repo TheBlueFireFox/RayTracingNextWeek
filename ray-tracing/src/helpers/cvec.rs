@@ -10,6 +10,20 @@ pub struct CVec<T, const N: usize> {
     data: [T; N],
 }
 
+impl<T, const N: usize> CVec<T, N> {
+    pub fn data(&self) -> &[T] {
+        &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut [T] {
+        &mut self.data
+    }
+
+    pub fn len(&self) -> usize {
+        N
+    }
+}
+
 impl<T, const N: usize> Default for CVec<T, N>
 where
     T: Default + Copy,
@@ -36,20 +50,6 @@ where
 {
     pub fn zeros() -> Self {
         [T::zero(); N].into()
-    }
-}
-
-impl<T, const N: usize> CVec<T, N> {
-    pub fn data(&self) -> &[T] {
-        &self.data
-    }
-
-    pub fn data_mut(&mut self) -> &mut [T] {
-        &mut self.data
-    }
-
-    pub fn len(&self) -> usize {
-        N
     }
 }
 
@@ -341,9 +341,9 @@ where
 impl<T, const N: usize> CVec<T, N>
 where
     T: num_traits::NumRef
-        + From<f64>
         + ops::Mul<CVec<T, N>, Output = CVec<T, N>>
         + PartialOrd
+        + From<f64>
         + Into<f64>
         + Neg<Output = T>
         + Copy,
