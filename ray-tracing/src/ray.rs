@@ -26,12 +26,12 @@ impl Ray {
         self.tm
     }
 
-    pub fn origin(&self) -> Point {
-        self.orig
+    pub fn origin(&self) -> &Point {
+        &self.orig
     }
 
-    pub fn direction(&self) -> Vec3 {
-        self.dir
+    pub fn direction(&self) -> &Vec3 {
+        &self.dir
     }
 
     pub fn at(&self, t: f64) -> Point {

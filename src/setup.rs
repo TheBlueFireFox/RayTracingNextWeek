@@ -12,7 +12,7 @@ use ray_tracing::{
 
 use crate::scenes::{self, Worlds};
 
-pub const WORLD: Worlds = Worlds::Earth;
+pub const WORLD: Worlds = Worlds::SimpleLight;
 
 pub const REPETITION: usize = 2;
 pub const ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -22,35 +22,41 @@ pub const SAMPLES_PER_PIXEL: usize = 100;
 pub const MAX_DEPTH: usize = 50;
 pub const GAMMA: f64 = 2.0;
 
-fn ray_color<H: Hittable>(r: &Ray, world: &H) -> Color {
-    ray_color_inner(r, world, MAX_DEPTH)
+fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H) -> Color {
+    ray_color_inner(r, background, world, MAX_DEPTH)
 }
 
-fn ray_color_inner<H: Hittable>(r: &Ray, world: &H, depth: usize) -> Color {
+fn ray_color_inner<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) -> Color {
+    // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth == 0 {
         return Color::zeros();
     }
 
     let mut rec = HitRecord::default();
 
-    if world.hit(r, 0.001, f64::INFINITY, &mut rec) {
-        let mut scattered = Ray::new(Vec3::zeros(), Vec3::zeros());
-        let mut attenuation = Color::zeros();
-
-        if let Some(ref mat) = rec.mat {
-            if mat.scatter(r, &rec, &mut attenuation, &mut scattered) {
-                return attenuation * ray_color_inner(&scattered, world, depth - 1);
-            }
-
-            return Color::zeros();
-        }
+    // If the ray hits nothing, return the background color.
+    if !world.hit(r, 0.001, f64::INFINITY, &mut rec) {
+        return *background;
     }
-    let unit_direction = r.direction().unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * Color::ones() + t * Color::new(0.5, 0.7, 1.0)
+
+    let mut scattered = Ray::new(Vec3::zeros(), Vec3::zeros());
+    let mut attenuation = Color::zeros();
+
+    let mat = rec
+        .mat
+        .as_ref()
+        .expect("at this point the rec should have a inner material");
+
+    let emitted = mat.emitted(rec.u, rec.v, &rec.p);
+
+    if !mat.scatter(r, &rec, &mut attenuation, &mut scattered) {
+        emitted
+    } else {
+        emitted + attenuation * ray_color_inner(&scattered, background, world, depth - 1)
+    }
 }
 
-fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
+fn irun<H: Hittable>(world: &H, background: &Color, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     pb.set_position(0);
 
     // Render
@@ -58,7 +64,7 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
     let calc = |o, l| ((o as f64) + ray_tracing::rand_range(0.0..1.0)) / (l - 1) as f64;
 
     // Divide the color by the number of samples
-    const FIX_SCALE : f64 = 1.0 / (SAMPLES_PER_PIXEL as f64);
+    const FIX_SCALE: f64 = 1.0 / (SAMPLES_PER_PIXEL as f64);
 
     // gamma and clamping the values
     let fix_pixel_val = |v: f64| {
@@ -87,7 +93,7 @@ fn irun<H: Hittable>(world: &H, pb: ProgressBar, cam: &Camera) -> Vec<Color> {
                             let v = calc(j, IMAGE_HEIGHT);
                             let u = calc(i, IMAGE_WIDTH);
                             let r = cam.get_ray(u, v);
-                            ray_color(&r, world)
+                            ray_color(&r, background, world)
                         })
                         .reduce(|acc, v| acc + v)
                         .expect("This iteration should never yield a None");
@@ -103,14 +109,15 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color
     pb_run.set_position(0);
 
     // Camera settings
-    let lookfrom = Point::new(13.0, 2.0, 3.0);
-    let lookat = Point::zeros();
+    let mut lookfrom = Point::new(13.0, 2.0, 3.0);
+    let mut lookat = Point::zeros();
     let vup = Point::new(0.0, 1.0, 0.0);
     let focus_dist = 10.0;
     let mut aperture = 0.0;
     let vfov = 20.0;
 
     // World
+    let mut background = [0.7, 0.8, 1.0].into();
     let world = match WORLD {
         Worlds::RandomScene => {
             aperture = 0.1;
@@ -119,6 +126,12 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color
         Worlds::TwoSpheres => scenes::two_spheres(),
         Worlds::TwoPerlinSpheres => scenes::two_perlin_spheres(),
         Worlds::Earth => scenes::earth()?,
+        Worlds::SimpleLight => {
+            lookfrom = [26.0,3.0,6.0].into();
+            lookat = [0.0,2.0,0.0].into();
+            background = Color::zeros();
+            scenes::simple_light()
+        }
     };
 
     // Camera
@@ -136,7 +149,7 @@ pub fn run(pb_run: ProgressBar, pb_int: ProgressBar) -> anyhow::Result<Vec<Color
 
     // run
     let mut tmp: Vec<_> = (0..REPETITION)
-        .map(|_| Some(irun(&world, pb_int.clone(), &cam)))
+        .map(|_| Some(irun(&world, &background, pb_int.clone(), &cam)))
         .progress_with(pb_run)
         .collect();
 

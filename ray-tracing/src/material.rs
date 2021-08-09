@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     hittable::HitRecord,
-    ray::{Ray, Vec3},
+    ray::{Point, Ray, Vec3},
     render::Color,
     rtweekend,
     texture::{SolidColor, Texture},
@@ -18,10 +18,14 @@ pub trait Material: Send + Sync {
         attenuation: &mut Color,
         scattered: &mut Ray,
     ) -> bool;
+
+    fn emitted(&self, _u: f64, _v: f64, _p: &Point) -> Color {
+        Color::zeros()
+    }
 }
 
 pub struct Lambertian {
-    pub albedo: Arc<dyn Texture>,
+    albedo: Arc<dyn Texture>,
 }
 
 impl Lambertian {
@@ -90,7 +94,7 @@ impl Material for Metal {
 }
 
 pub struct Dielectric {
-    pub ir: f64,
+    ir: f64,
 }
 
 impl Dielectric {
@@ -138,5 +142,37 @@ impl Material for Dielectric {
         *scattered = Ray::with_time(rec.p, direction, r_in.time());
 
         true
+    }
+}
+
+pub struct DiffuseLight {
+    emit: Arc<dyn Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new(c: Color) -> Self {
+        let solid = SolidColor::new(c);
+        Self::with_texture(solid)
+    }
+
+    pub fn with_texture<T: Texture + 'static>(emit: T) -> Self {
+        let iemit = Arc::new(emit);
+        Self { emit: iemit }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(
+        &self,
+        _r_in: &Ray,
+        _rec: &HitRecord,
+        _attenuation: &mut Color,
+        _scattered: &mut Ray,
+    ) -> bool {
+        false
+    }
+
+    fn emitted(&self, u: f64, v: f64, p: &Point) -> Color {
+        self.emit.value(u, v, p)
     }
 }

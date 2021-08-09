@@ -1,25 +1,39 @@
 use std::{cell::RefCell, sync::Arc};
 
-use ray_tracing::{
-    hittable::HittableList,
-    material::{Dielectric, Lambertian, Mat, Metal},
-    rand_range,
-    ray::{Point, Vec3},
-    render::Color,
-    sphere::{MovingSphere, Sphere},
-    texture::{CheckerTexture, ImageTexture, NoiseTexture},
-};
+use ray_tracing::{hittable::HittableList, material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal}, objects::{MovingSphere, Sphere, XYRect}, rand_range, ray::{Point, Vec3}, render::Color, texture::{CheckerTexture, ImageTexture, NoiseTexture}};
 
 #[allow(unused)]
 pub enum Worlds {
     TwoPerlinSpheres,
     TwoSpheres,
     RandomScene,
+    SimpleLight,
     Earth,
 }
 
+pub fn simple_light() -> HittableList {
+    let mut world = HittableList::new();
+
+    let pertext = NoiseTexture::with_scale(4.0);
+    let lam = Lambertian::with_texture(pertext);
+    let lam = Arc::new(lam);
+    let objs = [
+        ([0.0, -1000.0, 0.0].into(), 1000.0),
+        ([0.0, 2.0, 0.0].into(), 2.0),
+    ];
+    for s in objs {
+        world.add(Sphere::new(s.0, s.1, lam.clone()));
+    }
+
+    let difflight = DiffuseLight::new([4.0, 4.0, 4.0].into());
+    let rect = XYRect::new(difflight, 3.0,5.0,1.0,3.0,-2.0);
+    world.add(rect);
+
+    world
+}
+
 pub fn earth() -> anyhow::Result<HittableList> {
-    let mut world = HittableList::with_capacity(1);
+    let mut world = HittableList::new();
 
     let earth_texture = ImageTexture::new("assets/earthmap.jpg")?;
     let earth_surface = Lambertian::with_texture(earth_texture);
