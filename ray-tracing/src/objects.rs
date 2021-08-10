@@ -2,7 +2,7 @@ use std::{f64::consts::PI, sync::Arc};
 
 use crate::{
     aabb::Aabb,
-    hittable::{HitRecord, Hittable},
+    hittable::{HitRecord, Hittable, HittableList},
     material::{Mat, Material},
     ray::{Point, Ray, Vec3},
 };
@@ -161,35 +161,80 @@ impl Hittable for MovingSphere {
     }
 }
 
+pub struct Cube {
+    box_min: Point,
+    box_max: Point,
+    sides: HittableList,
+}
+
+impl Cube {
+    pub fn new<M: Material + 'static>(p1: &Point, p0: &Point, mat: M) -> Self {
+        let box_min = p0.clone();
+        let box_max = p1.clone();
+
+        let mut sides = HittableList::with_capacity(6);
+
+        let mat = Arc::new(mat);
+
+        for p in [p0, p1] {
+            sides.add(rect::XY::with_arc(
+                mat.clone(),
+                (p0.x(), p1.x()),
+                (p0.y(), p1.y()),
+                p.z(),
+            ));
+
+            sides.add(rect::XZ::with_arc(
+                mat.clone(),
+                (p0.x(), p1.x()),
+                (p0.z(), p1.z()),
+                p.y(),
+            ));
+
+            sides.add(rect::YZ::with_arc(
+                mat.clone(),
+                (p0.y(), p1.y()),
+                (p0.z(), p1.z()),
+                p.x(),
+            ));
+        }
+
+        Self {
+            box_min,
+            box_max,
+            sides,
+        }
+    }
+}
+
+impl Hittable for Cube {
+    fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+        *output = Aabb::new(self.box_min, self.box_max);
+        true
+    }
+
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        self.sides.hit(r, t_min, t_max, rec)
+    }
+}
+
 pub mod rect {
     use super::*;
 
     pub struct XY {
         mp: Mat,
-        x0: f64,
-        x1: f64,
-        y0: f64,
-        y1: f64,
+        x: (f64, f64),
+        y: (f64, f64),
         k: f64,
     }
 
     impl XY {
-        pub fn new<M: Material + 'static>(
-            mp: M,
-            x0: f64,
-            x1: f64,
-            y0: f64,
-            y1: f64,
-            k: f64,
-        ) -> Self {
-            Self {
-                mp: Arc::new(mp),
-                x0,
-                x1,
-                y0,
-                y1,
-                k,
-            }
+        pub fn new<M: Material + 'static>(mp: M, x: (f64, f64), y: (f64, f64), k: f64) -> Self {
+            Self::with_arc(Arc::new(mp), x, y, k)
+        }
+
+        pub fn with_arc(mp: Mat, x: (f64, f64), y: (f64, f64), k: f64) -> Self {
+            Self { mp, x, y, k }
         }
     }
 
@@ -198,8 +243,8 @@ pub mod rect {
             // The bounding box must have non-zero width in each dimension, so pad the Z
             // dimension a small amount.
             *output = Aabb::new(
-                [self.x0, self.y0, self.k - 0.0001].into(),
-                [self.x1, self.y1, self.k + 0.0001].into(),
+                [self.x.0, self.y.0, self.k - 0.0001].into(),
+                [self.x.1, self.y.1, self.k + 0.0001].into(),
             );
             true
         }
@@ -209,7 +254,7 @@ pub mod rect {
             let dir = r.direction();
             let t = (self.k - org.z()) / dir.z();
 
-            let bounds = |t, min, max| t < min || t > max;
+            let bounds = |val, min, max| val < min || max < val;
 
             if bounds(t, t_min, t_max) {
                 return false;
@@ -218,12 +263,12 @@ pub mod rect {
             let x = org.x() + t * dir.x();
             let y = org.y() + t * dir.y();
 
-            if bounds(x, self.x0, self.x1) || bounds(y, self.y0, self.y1) {
+            if bounds(x, self.x.0, self.x.1) || bounds(y, self.y.0, self.y.1) {
                 return false;
             }
 
-            rec.u = (x - self.x0) / (self.x1 - self.x0);
-            rec.v = (y - self.y0) / (self.y1 - self.y0);
+            rec.u = (x - self.x.0) / (self.x.1 - self.x.0);
+            rec.v = (y - self.y.0) / (self.y.1 - self.y.0);
             rec.t = t;
 
             let outward_normal = [0.0, 0.0, 1.0].into();
@@ -237,30 +282,18 @@ pub mod rect {
 
     pub struct XZ {
         mp: Mat,
-        x0: f64,
-        x1: f64,
-        z0: f64,
-        z1: f64,
+        x: (f64, f64),
+        z: (f64, f64),
         k: f64,
     }
 
     impl XZ {
-        pub fn new<M: Material + 'static>(
-            mp: M,
-            x0: f64,
-            x1: f64,
-            z0: f64,
-            z1: f64,
-            k: f64,
-        ) -> Self {
-            Self {
-                mp: Arc::new(mp),
-                x0,
-                x1,
-                z0,
-                z1,
-                k,
-            }
+        pub fn new<M: Material + 'static>(mp: M, x: (f64, f64), z: (f64, f64), k: f64) -> Self {
+            Self::with_arc(Arc::new(mp), x, z, k)
+        }
+
+        pub fn with_arc(mp: Mat, x: (f64, f64), z: (f64, f64), k: f64) -> Self {
+            Self { mp, x, z, k }
         }
     }
 
@@ -269,8 +302,8 @@ pub mod rect {
             // The bounding box must have non-zero width in each dimension, so pad the Y
             // dimension a small amount.
             *output = Aabb::new(
-                [self.x0, self.k - 0.0001, self.z0].into(),
-                [self.x1, self.k + 0.0001, self.z1].into(),
+                [self.x.0, self.k - 0.0001, self.z.0].into(),
+                [self.x.1, self.k + 0.0001, self.z.1].into(),
             );
             true
         }
@@ -280,7 +313,7 @@ pub mod rect {
             let dir = r.direction();
             let t = (self.k - org.y()) / dir.y();
 
-            let bounds = |t, min, max| t < min || t > max;
+            let bounds = |val, min, max| val < min || max < val;
 
             if bounds(t, t_min, t_max) {
                 return false;
@@ -289,12 +322,12 @@ pub mod rect {
             let x = org.x() + t * dir.x();
             let z = org.z() + t * dir.z();
 
-            if bounds(x, self.x0, self.x1) || bounds(z, self.z0, self.z1) {
+            if bounds(x, self.x.0, self.x.1) || bounds(z, self.z.0, self.z.1) {
                 return false;
             }
 
-            rec.u = (x - self.x0) / (self.x1 - self.x0);
-            rec.v = (z - self.z0) / (self.z1 - self.z0);
+            rec.u = (x - self.x.0) / (self.x.1 - self.x.0);
+            rec.v = (z - self.z.0) / (self.z.1 - self.z.0);
             rec.t = t;
 
             let outward_normal = [0.0, 1.0, 0.0].into();
@@ -308,30 +341,17 @@ pub mod rect {
 
     pub struct YZ {
         mp: Mat,
-        y0: f64,
-        y1: f64,
-        z0: f64,
-        z1: f64,
+        y: (f64, f64),
+        z: (f64, f64),
         k: f64,
     }
 
     impl YZ {
-        pub fn new<M: Material + 'static>(
-            mp: M,
-            y0: f64,
-            y1: f64,
-            z0: f64,
-            z1: f64,
-            k: f64,
-        ) -> Self {
-            Self {
-                mp: Arc::new(mp),
-                y0,
-                y1,
-                z0,
-                z1,
-                k,
-            }
+        pub fn new<M: Material + 'static>(mp: M, y: (f64, f64), z: (f64, f64), k: f64) -> Self {
+            Self::with_arc(Arc::new(mp), y, z, k)
+        }
+        pub fn with_arc(mp: Mat, y: (f64, f64), z: (f64, f64), k: f64) -> Self {
+            Self { mp, y, z, k }
         }
     }
 
@@ -340,8 +360,8 @@ pub mod rect {
             // The bounding box must have non-zero width in each dimension, so pad the X
             // dimension a small amount.
             *output = Aabb::new(
-                [self.k - 0.0001, self.y0, self.z0].into(),
-                [self.k + 0.0001, self.y1, self.z1].into(),
+                [self.k - 0.0001, self.y.0, self.z.0].into(),
+                [self.k + 0.0001, self.y.1, self.z.1].into(),
             );
             true
         }
@@ -351,7 +371,7 @@ pub mod rect {
             let dir = r.direction();
             let t = (self.k - org.x()) / dir.x();
 
-            let bounds = |t, min, max| t < min || t > max;
+            let bounds = |val, min, max| val < min || max < val;
 
             if bounds(t, t_min, t_max) {
                 return false;
@@ -360,12 +380,12 @@ pub mod rect {
             let y = org.y() + t * dir.y();
             let z = org.z() + t * dir.z();
 
-            if bounds(y, self.y0, self.y1) || bounds(z, self.z0, self.z1) {
+            if bounds(y, self.y.0, self.y.1) || bounds(z, self.z.0, self.z.1) {
                 return false;
             }
 
-            rec.u = (y - self.y0) / (self.y1 - self.y0);
-            rec.v = (z - self.z0) / (self.z1 - self.z0);
+            rec.u = (y - self.y.0) / (self.y.1 - self.y.0);
+            rec.v = (z - self.z.0) / (self.z.1 - self.z.0);
             rec.t = t;
 
             let outward_normal = [1.0, 0.0, 0.0].into();

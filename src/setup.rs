@@ -12,7 +12,7 @@ use ray_tracing::{
 
 use crate::scenes::{self, Worlds};
 
-const WORLD: Worlds = Worlds::CornellBox;
+const WORLD: Worlds = Worlds::RandomScene;
 
 const REPETITION: usize = 2;
 const ASPECT_RATIO: f64 = 16.0 / 9.0;

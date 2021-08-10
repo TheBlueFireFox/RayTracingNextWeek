@@ -186,8 +186,8 @@ where
     fn add(self, rhs: Self) -> Self::Output {
         let mut next = [T::zero(); N];
 
-        for i in 0..self.len() {
-            next[i] = self.data[i] + rhs.data[i];
+        for (i, (&r, &l)) in self.data.iter().zip(rhs.data.iter()).enumerate() {
+            next[i] = r + l;
         }
 
         next.into()
@@ -203,8 +203,8 @@ where
     fn sub(self, rhs: Self) -> Self::Output {
         let mut next = [T::zero(); N];
 
-        for i in 0..self.len() {
-            next[i] = self.data[i] - rhs.data[i];
+        for (i, (&r, &l)) in self.data.iter().zip(rhs.data.iter()).enumerate() {
+            next[i] = r - l;
         }
 
         next.into()
@@ -231,8 +231,8 @@ where
     fn mul(self, rhs: Self) -> Self::Output {
         let mut next = [T::one(); N];
 
-        for i in 0..self.len() {
-            next[i] = self.data[i] * rhs.data[i];
+        for (i, (&r, &l)) in self.data.iter().zip(rhs.data.iter()).enumerate() {
+            next[i] = r * l;
         }
 
         next.into()
@@ -248,8 +248,8 @@ where
     fn mul(self, rhs: T) -> Self::Output {
         let mut next = [T::one(); N];
 
-        for i in 0..self.len() {
-            next[i] = self.data[i] * rhs;
+        for (i, &v) in self.data.iter().enumerate() {
+            next[i] = v * rhs;
         }
 
         next.into()
@@ -289,8 +289,8 @@ where
     T: ops::AddAssign + Copy,
 {
     fn add_assign(&mut self, rhs: Self) {
-        for i in 0..self.len() {
-            self.data[i] += rhs.data[i];
+        for (o, v) in self.data.iter_mut().zip(rhs.data.iter()) {
+            *o += *v;
         }
     }
 }
@@ -319,13 +319,14 @@ impl<T, const N: usize> CVec<T, N>
 where
     T: num_traits::NumRef + Copy,
 {
-    pub fn dot(&self, r: &Self) -> T {
-        let mut res = T::zero();
-        for i in 0..self.len() {
-            res = res + self.data[i] * r.data[i];
-        }
-
-        res
+    pub fn dot(&self, rhs: &Self) -> T {
+        // SAFETY: unwrap is safe here as we know that the lenghts are the same and that there 
+        // allways will be a correct value.
+        self.data.iter()
+            .zip(rhs.data.iter())
+            .map(|(&r, &l)| r * l)
+            .reduce(|acc, b| acc + b)
+            .unwrap()
     }
 }
 

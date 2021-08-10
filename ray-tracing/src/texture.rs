@@ -134,9 +134,7 @@ impl Texture for ImageTexture {
 
                 const COLOR_SCALE: f64 = 1.0 / 255.0;
 
-                let pixel = img.pixel(i, j);
-
-                COLOR_SCALE * *pixel
+                COLOR_SCALE * img[j][i]
             }
         }
     }

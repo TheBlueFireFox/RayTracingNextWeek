@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{ops::Index, path::Path};
 
 use image::{io::Reader, GenericImageView};
 
@@ -20,11 +20,6 @@ impl ImageHolder {
         }
     }
 
-    /// Get a reference to the image holder's pixel.
-    pub fn pixels(&self) -> &[Color] {
-        &self.pixels
-    }
-
     /// Get a reference to the image holder's height.
     pub fn height(&self) -> usize {
         self.height
@@ -34,9 +29,19 @@ impl ImageHolder {
     pub fn width(&self) -> usize {
         self.width
     }
+}
 
-    pub fn pixel(&self, x: usize, y: usize) -> &Color {
-        &self.pixels()[y * self.width() + x]
+impl Index<usize> for ImageHolder {
+    type Output = [Color];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        assert!(
+            index < self.height,
+            "Index out of bound error {} of {}",
+            index,
+            self.height
+        );
+        &self.pixels[(index * self.width)..((index + 1) * self.width)]
     }
 }
 

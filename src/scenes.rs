@@ -3,7 +3,7 @@ use std::{cell::RefCell, sync::Arc};
 use ray_tracing::{
     hittable::HittableList,
     material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal},
-    objects::{rect, MovingSphere, Sphere},
+    objects::{rect, Cube, MovingSphere, Sphere},
     rand_range,
     ray::{Point, Vec3},
     render::Color,
@@ -29,18 +29,31 @@ pub fn cornell_box() -> HittableList {
     let light = DiffuseLight::new([15.0, 15.0, 15.0].into());
 
     for (k, mp) in [(555.0, green), (0.0, red)] {
-        let yz = rect::YZ::new(mp, 0.0, 555.0, 0.0, 555.0, k);
+        let yz = rect::YZ::new(mp, (0.0, 555.0), (0.0, 555.0), k);
         world.add(yz);
     }
 
-    world.add(rect::XZ::new(light, 213.0, 343.0, 227.0, 332.0, 554.0));
+    world.add(rect::XZ::new(light, (213.0, 343.0), (227.0, 332.0), 554.0));
 
     for k in [555.0, 0.0] {
-        let xz = rect::XZ::new(white.clone(), 0.0, 555.0, 0.0, 555.0, k);
+        let xz = rect::XZ::new(white.clone(), (0.0, 555.0), (0.0, 555.0), k);
         world.add(xz);
     }
 
-    world.add(rect::XY::new(white.clone(), 0.0, 555.0, 0.0, 555.0, 555.0));
+    world.add(rect::XY::new(
+        white.clone(),
+        (0.0, 555.0),
+        (0.0, 555.0),
+        555.0,
+    ));
+
+    for (a, b) in [
+        ([130.0, 0.0, 65.0], [295.0, 165.0, 230.0]),
+        ([265.0, 0.0, 295.0], [430.0, 330.0, 460.0]),
+    ] {
+        let cube = Cube::new(&a.into(), &b.into(), white.clone());
+        world.add(cube);
+    }
 
     world
 }
@@ -60,7 +73,7 @@ pub fn simple_light() -> HittableList {
     }
 
     let difflight = DiffuseLight::new([4.0, 4.0, 4.0].into());
-    let rect = rect::XY::new(difflight, 3.0, 5.0, 1.0, 3.0, -2.0);
+    let rect = rect::XY::new(difflight, (3.0, 5.0), (1.0, 3.0), -2.0);
     world.add(rect);
 
     world
