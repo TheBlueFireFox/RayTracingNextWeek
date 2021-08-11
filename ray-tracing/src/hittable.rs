@@ -19,8 +19,9 @@ pub struct HitRecord {
 
 impl HitRecord {
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: &Vec3) {
+        self.front_face = Vec3::dot(r.direction(), outward_normal) < 0.0;
+
         let outward_normal = *outward_normal;
-        self.front_face = Vec3::dot(&r.direction(), &outward_normal) < 0.0;
         self.normal = if self.front_face {
             outward_normal
         } else {
@@ -69,13 +70,14 @@ impl HittableList {
 
 impl Hittable for HittableList {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        let mut temp_rec = Default::default();
+        let mut temp_rec = HitRecord::default();
         let mut hit_anything = false;
         let mut closest_so_far = t_max;
-        for obj in &self.objects {
+
+        for obj in self.objects.iter() {
             if obj.hit(r, t_min, closest_so_far, &mut temp_rec) {
                 hit_anything = true;
-                closest_so_far = temp_rec.t.clone();
+                closest_so_far = temp_rec.t;
                 *rec = temp_rec.clone();
             }
         }
@@ -105,5 +107,19 @@ impl Hittable for HittableList {
         }
 
         true
+    }
+}
+
+pub struct Translate {
+    ptr: Arc<dyn Hittable>,
+    offset: Vec3,
+}
+
+impl Translate {
+    pub fn new<H: Hittable + 'static>(ptr: H, offset: Vec3) -> Self {
+        Self::with_arc(Arc::new(ptr), offset)
+    }
+    pub fn with_arc(ptr: Arc<dyn Hittable>, offset: Vec3) -> Self {
+        Self { ptr, offset }
     }
 }

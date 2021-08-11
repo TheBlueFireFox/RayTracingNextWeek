@@ -320,9 +320,10 @@ where
     T: num_traits::NumRef + Copy,
 {
     pub fn dot(&self, rhs: &Self) -> T {
-        // SAFETY: unwrap is safe here as we know that the lenghts are the same and that there 
-        // allways will be a correct value.
-        self.data.iter()
+        // SAFETY: unwrap is safe here as we know that the lenghts are the same
+        // and that there allways will be a correct value.
+        self.data
+            .iter()
             .zip(rhs.data.iter())
             .map(|(&r, &l)| r * l)
             .reduce(|acc, b| acc + b)

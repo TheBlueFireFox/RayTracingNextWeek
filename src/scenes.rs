@@ -23,11 +23,13 @@ pub enum Worlds {
 pub fn cornell_box() -> HittableList {
     let mut world = HittableList::new();
 
+    // Setup colors
     let red = Lambertian::new([0.65, 0.05, 0.05].into());
     let white = Lambertian::new([0.73, 0.73, 0.73].into());
     let green = Lambertian::new([0.12, 0.45, 0.15].into());
     let light = DiffuseLight::new([15.0, 15.0, 15.0].into());
 
+    // Walls
     for (k, mp) in [(555.0, green), (0.0, red)] {
         let yz = rect::YZ::new(mp, (0.0, 555.0), (0.0, 555.0), k);
         world.add(yz);
@@ -47,12 +49,12 @@ pub fn cornell_box() -> HittableList {
         555.0,
     ));
 
+    // Cubes in the middle
     for (a, b) in [
         ([130.0, 0.0, 65.0], [295.0, 165.0, 230.0]),
         ([265.0, 0.0, 295.0], [430.0, 330.0, 460.0]),
     ] {
-        let cube = Cube::new(&a.into(), &b.into(), white.clone());
-        world.add(cube);
+        world.add(Cube::new(&a.into(), &b.into(), white.clone()));
     }
 
     world

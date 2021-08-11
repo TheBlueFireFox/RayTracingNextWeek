@@ -168,10 +168,7 @@ pub struct Cube {
 }
 
 impl Cube {
-    pub fn new<M: Material + 'static>(p1: &Point, p0: &Point, mat: M) -> Self {
-        let box_min = p0.clone();
-        let box_max = p1.clone();
-
+    pub fn new<M: Material + 'static>(p0: &Point, p1: &Point, mat: M) -> Self {
         let mut sides = HittableList::with_capacity(6);
 
         let mat = Arc::new(mat);
@@ -200,8 +197,8 @@ impl Cube {
         }
 
         Self {
-            box_min,
-            box_max,
+            box_min: p0.clone(),
+            box_max: p1.clone(),
             sides,
         }
     }
@@ -214,7 +211,8 @@ impl Hittable for Cube {
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        self.sides.hit(r, t_min, t_max, rec)
+        let res = self.sides.hit(r, t_min, t_max, rec);
+        res
     }
 }
 
@@ -252,6 +250,7 @@ pub mod rect {
         fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
             let org = r.origin();
             let dir = r.direction();
+
             let t = (self.k - org.z()) / dir.z();
 
             let bounds = |val, min, max| val < min || max < val;
@@ -267,8 +266,10 @@ pub mod rect {
                 return false;
             }
 
-            rec.u = (x - self.x.0) / (self.x.1 - self.x.0);
-            rec.v = (y - self.y.0) / (self.y.1 - self.y.0);
+            let calc = |a, b: (_, _)| (a - b.0) / (b.1 - b.0);
+
+            rec.u = calc(x, self.x);
+            rec.v = calc(y, self.y);
             rec.t = t;
 
             let outward_normal = [0.0, 0.0, 1.0].into();
@@ -326,8 +327,10 @@ pub mod rect {
                 return false;
             }
 
-            rec.u = (x - self.x.0) / (self.x.1 - self.x.0);
-            rec.v = (z - self.z.0) / (self.z.1 - self.z.0);
+            let calc = |a, b: (_, _)| (a - b.0) / (b.1 - b.0);
+
+            rec.u = calc(x, self.x);
+            rec.v = calc(z, self.z);
             rec.t = t;
 
             let outward_normal = [0.0, 1.0, 0.0].into();
@@ -384,8 +387,10 @@ pub mod rect {
                 return false;
             }
 
-            rec.u = (y - self.y.0) / (self.y.1 - self.y.0);
-            rec.v = (z - self.z.0) / (self.z.1 - self.z.0);
+            let calc = |a, b: (_, _)| (a - b.0) / (b.1 - b.0);
+
+            rec.u = calc(y, self.y);
+            rec.v = calc(z, self.z);
             rec.t = t;
 
             let outward_normal = [1.0, 0.0, 0.0].into();
