@@ -1,16 +1,123 @@
 use std::{cell::RefCell, sync::Arc};
 
-use ray_tracing::{hittable::{HittableList, RotateY, Translate}, material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal}, medium, objects::{rect, Cube, MovingSphere, Sphere}, rand_range, ray::{Point, Vec3}, render::Color, texture::{CheckerTexture, ImageTexture, NoiseTexture}};
+use ray_tracing::{
+    bvh::BvhNode,
+    hittable::{HittableList, RotateY, Translate},
+    material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal},
+    medium,
+    objects::{rect, Cube, MovingSphere, Sphere},
+    rand_range,
+    ray::{Point, Vec3},
+    render::Color,
+    texture::{CheckerTexture, ImageTexture, NoiseTexture},
+};
 
 #[allow(unused)]
 pub enum Worlds {
+    RandomScene,
     TwoPerlinSpheres,
     TwoSpheres,
-    RandomScene,
+    Earth,
     SimpleLight,
     CornellBox,
     CornellBoxSmoke,
-    Earth,
+    FinalScene,
+}
+
+pub fn final_scene() -> anyhow::Result<HittableList> {
+    let mut cubes = HittableList::new();
+    let ground = Lambertian::new([0.48, 0.83, 0.53].into());
+
+    const CUBE_PER_SIDE: usize = 10;
+
+    for i in 0..CUBE_PER_SIDE {
+        for j in 0..CUBE_PER_SIDE {
+            let w = 100.0;
+            let x0 = -1000.0 + (i as f64) * w;
+            let y0 = 0.0;
+            let z0 = -1000.0 + (j as f64) * w;
+            let x1 = x0 + w;
+            let y1 = rand_range(1.0..101.0);
+            let z1 = z0 + w;
+
+            let cube = Cube::new(&[x0, y0, z0].into(), &[x1, y1, z1].into(), ground.clone());
+            cubes.add(cube);
+        }
+    }
+
+    let mut objects = HittableList::new();
+    objects.add(cubes);
+
+    let light = DiffuseLight::new([7.0, 7.0, 7.0].into());
+    objects.add(rect::XZ::new(light, (123.0, 423.0), (147.0, 412.0), 554.0));
+
+    let center1 = [400.0, 400.0, 200.0].into();
+    let center2 = center1 + [30.0, 0.0, 0.0].into();
+    let mam = Lambertian::new([0.7, 0.3, 0.1].into());
+    objects.add(MovingSphere::new(
+        center1,
+        center2,
+        0.0,
+        1.0,
+        50.0,
+        Arc::new(mam),
+    ));
+
+    for (c, m) in [
+        ([260.0, 150.0, 45.0], Arc::new(Dielectric::new(1.5)) as Mat),
+        (
+            [0.0, 150.0, 145.0],
+            Arc::new(Metal::new([0.8, 0.8, 0.9].into(), 1.0)),
+        ),
+    ] {
+        objects.add(Sphere::new(c.into(), 50.0, m));
+    }
+
+    let glass = Arc::new(Dielectric::new(1.5));
+    let boundary = Sphere::new([360.0, 150.0, 145.0].into(), 70.0, glass.clone());
+    objects.add(boundary.clone());
+    objects.add(medium::Constant::new(
+        boundary,
+        0.2,
+        &[0.2, 0.4, 0.9].into(),
+    ));
+
+    let boundary = Sphere::new(Point::zeros(), 5000.0, glass);
+    objects.add(medium::Constant::new(
+        boundary,
+        0.0001,
+        &[1.0, 1.0, 1.0].into(),
+    ));
+
+    let emat = Lambertian::with_texture(ImageTexture::new("assets/earthmap.jpg")?);
+    objects.add(Sphere::new(
+        [400.0, 200.0, 400.0].into(),
+        100.0,
+        Arc::new(emat),
+    ));
+
+    let pertext = NoiseTexture::with_scale(0.1);
+    objects.add(Sphere::new(
+        [200.0, 280.0, 300.0].into(),
+        80.0,
+        Arc::new(Lambertian::with_texture(pertext)),
+    ));
+
+    let mut cubes = HittableList::new();
+    let white = Arc::new(Lambertian::new([0.73, 0.73,0.73].into()));
+    const NS: usize = 1000;
+
+    for _ in 0..NS {
+        let sphere = Sphere::new(Point::random_range(0.0..165.0), 10.0, white.clone());
+        cubes.add(sphere);
+    }
+
+    objects.add(Translate::new(
+        RotateY::new(BvhNode::from_hittable_list(&cubes, 0.0, 1.0), 15.0),
+        [-100.0, 270.0, 395.0].into(),
+    ));
+
+    Ok(objects)
 }
 
 pub fn cornell_box() -> HittableList {
@@ -88,8 +195,18 @@ pub fn cornell_box_smoke() -> HittableList {
 
     // Cubes in the middle
     let cubes = [
-        ([165.0, 333.0, 165.0], 15.0, [265.0, 0.0, 295.0], Color::zeros()),
-        ([165.0, 165.0, 165.0], -18.0, [130.0, 0.0, 65.0], Color::ones()),
+        (
+            [165.0, 333.0, 165.0],
+            15.0,
+            [265.0, 0.0, 295.0],
+            Color::zeros(),
+        ),
+        (
+            [165.0, 165.0, 165.0],
+            -18.0,
+            [130.0, 0.0, 65.0],
+            Color::ones(),
+        ),
     ];
     for (pos, ang, tra, col) in cubes {
         let cube = Cube::new(&Point::zeros(), &pos.into(), white.clone());
@@ -100,7 +217,6 @@ pub fn cornell_box_smoke() -> HittableList {
     }
 
     world
-
 }
 
 pub fn simple_light() -> HittableList {

@@ -7,6 +7,7 @@ use crate::{
     ray::{Point, Ray, Vec3},
 };
 
+#[derive(Clone)]
 pub struct Sphere {
     pub center: Point,
     pub radius: f64,

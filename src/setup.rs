@@ -12,9 +12,9 @@ use ray_tracing::{
 
 use crate::scenes::{self, Worlds};
 
-const WORLD: Worlds = Worlds::CornellBoxSmoke;
+const WORLD: Worlds = Worlds::FinalScene;
 
-const REPETITION: usize = 2;
+const REPETITION: usize = 1;
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 const IMAGE_WIDTH: usize = 160 * 4;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
@@ -214,7 +214,17 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
             lookat = [278.0, 278.0, 0.0].into();
             vfov = 40.0;
             scenes::cornell_box_smoke()
-        },
+        }
+        Worlds::FinalScene => {
+            world_conf.set_aspect_ratio(1.0);
+            world_conf.set_image_width(600);
+            world_conf.samples_per_pixel = 200;
+            world_conf.background = Color::zeros();
+            lookfrom = [478.0, 278.0, -600.0].into();
+            lookat = [278.0, 278.0, 0.0].into();
+            vfov = 40.0;
+            scenes::final_scene()?
+        }
     };
 
     // Camera
