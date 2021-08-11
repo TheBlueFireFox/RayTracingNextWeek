@@ -1,7 +1,7 @@
 use std::{cell::RefCell, sync::Arc};
 
 use ray_tracing::{
-    hittable::HittableList,
+    hittable::{HittableList, RotateY, Translate},
     material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal},
     objects::{rect, Cube, MovingSphere, Sphere},
     rand_range,
@@ -50,11 +50,15 @@ pub fn cornell_box() -> HittableList {
     ));
 
     // Cubes in the middle
-    for (a, b) in [
-        ([130.0, 0.0, 65.0], [295.0, 165.0, 230.0]),
-        ([265.0, 0.0, 295.0], [430.0, 330.0, 460.0]),
-    ] {
-        world.add(Cube::new(&a.into(), &b.into(), white.clone()));
+    let cubes = [
+        ([165.0, 333.0, 165.0], 15.0, [265.0, 0.0, 295.0]),
+        ([165.0, 165.0, 165.0], -18.0, [130.0, 0.0, 65.0]),
+    ];
+    for (pos, ang, tra) in cubes {
+        let cube = Cube::new(&Point::zeros(), &pos.into(), white.clone());
+        let cube = RotateY::new(cube, ang);
+        let cube = Translate::new(cube, tra.into());
+        world.add(cube);
     }
 
     world

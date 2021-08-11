@@ -1,7 +1,10 @@
+use itertools::{self, izip};
+
 use std::sync::Arc;
 
 use crate::{
     aabb::Aabb,
+    degrees_to_radians,
     material::Material,
     ray::{Point, Ray, Vec3},
 };
@@ -110,16 +113,151 @@ impl Hittable for HittableList {
     }
 }
 
-pub struct Translate {
-    ptr: Arc<dyn Hittable>,
+pub struct Translate<H: Hittable> {
+    ptr: H,
     offset: Vec3,
 }
 
-impl Translate {
-    pub fn new<H: Hittable + 'static>(ptr: H, offset: Vec3) -> Self {
-        Self::with_arc(Arc::new(ptr), offset)
-    }
-    pub fn with_arc(ptr: Arc<dyn Hittable>, offset: Vec3) -> Self {
+impl<H: Hittable> Translate<H> {
+    pub fn new(ptr: H, offset: Vec3) -> Self {
         Self { ptr, offset }
+    }
+}
+
+impl<H> Hittable for Translate<H>
+where
+    H: Hittable,
+{
+    fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool {
+        if !self.ptr.bounding_box(time0, time1, output) {
+            return false;
+        }
+
+        *output = Aabb::new(*output.min() + self.offset, *output.max() + self.offset);
+
+        true
+    }
+
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let moved = Ray::with_time(*r.origin() - self.offset, *r.direction(), r.time());
+
+        if !self.ptr.hit(&moved, t_min, t_max, rec) {
+            return false;
+        }
+
+        rec.p += self.offset;
+        let normal = rec.normal;
+        rec.set_face_normal(&moved, &normal);
+
+        true
+    }
+}
+
+pub struct RotateY<H: Hittable> {
+    ptr: H,
+    sin_theta: f64,
+    cos_theta: f64,
+    hasbox: bool,
+    bbox: Aabb,
+}
+
+impl<H: Hittable> RotateY<H> {
+    pub fn new(p: H, angle: f64) -> Self {
+        let rads = degrees_to_radians(angle);
+        let sin_theta = rads.sin();
+        let cos_theta = rads.cos();
+
+        let mut bbox = Aabb::default();
+        let hasbox = p.bounding_box(0.0, 1.0, &mut bbox);
+
+        let mut min = [f64::INFINITY; 3];
+        let mut max = [-f64::INFINITY; 3];
+
+        let calc = |iv, bv| {
+            let iv = iv as f64;
+            iv * bv + (1.0 - iv) * bv
+        };
+
+        for i in 0..2 {
+            let x = calc(i, bbox.max().x());
+            let cosx = cos_theta * x;
+            let sinx = -sin_theta * x;
+
+            for j in 0..2 {
+                let y = calc(j, bbox.max().y());
+
+                for k in 0..2 {
+                    let z = calc(k, bbox.max().z());
+
+                    let newx = cosx + sin_theta * z;
+                    let newz = sinx + cos_theta * z;
+
+                    let tester = [newx, y, newz];
+
+                    for (min, max, tes) in izip!(&mut min, &mut max, tester) {
+                        *min = f64::min(*min, tes);
+                        *max = f64::max(*max, tes);
+                    }
+                }
+            }
+        }
+
+        Self {
+            ptr: p,
+            sin_theta,
+            cos_theta,
+            hasbox,
+            bbox: Aabb::new(min.into(), max.into()),
+        }
+    }
+}
+
+impl<H> Hittable for RotateY<H>
+where
+    H: Hittable,
+{
+    fn bounding_box(&self, _time0: f64, _time11: f64, output: &mut Aabb) -> bool {
+        *output = self.bbox;
+        self.hasbox
+    }
+
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let oorg = r.origin();
+        let odir = r.direction();
+
+        let calc = |data: &Vec3| {
+            let mut res = data.clone();
+
+            res.data_mut()[0] = self.cos_theta * data.data()[0] - self.sin_theta * data.data()[2];
+            res.data_mut()[2] = self.sin_theta * data.data()[0] + self.cos_theta * data.data()[2];
+
+            res
+        };
+
+        let org = calc(oorg);
+        let dir = calc(odir);
+
+        let rotated = Ray::with_time(org, dir, r.time());
+
+        if !self.ptr.hit(&rotated, t_min, t_max, rec) {
+            return false;
+        }
+
+        let calc = |data: &Vec3| {
+            let mut res = data.clone();
+
+            res.data_mut()[0] = self.cos_theta * data.data()[0] + self.sin_theta * data.data()[2];
+            res.data_mut()[2] = -self.sin_theta * data.data()[0] + self.cos_theta * data.data()[2];
+
+            res
+        };
+
+        let p = calc(&rec.p);
+        let normal = calc(&rec.normal);
+
+        rec.p = p;
+        rec.set_face_normal(&rotated, &normal);
+
+        true
     }
 }
