@@ -43,21 +43,24 @@ fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
     let pb_run = setup(conf.rep);
     let pb_curr = setup(conf.image_height());
 
-    let pb_run1 = pb_run.clone();
-    let pb_curr1 = pb_curr.clone();
-
     let ab = Arc::new(AtomicBool::new(true));
-    let ab1 = ab.clone();
 
-    let ticker = thread::spawn(move || {
-        let s = Duration::from_millis(1000 / DRAW_RATE);
+    let ticker = {
+        let pb_run1 = pb_run.clone();
+        let pb_curr1 = pb_curr.clone();
 
-        while ab1.load(Ordering::Acquire) {
-            pb_run1.tick();
-            pb_curr1.tick();
-            thread::sleep(s);
-        }
-    });
+        let ab1 = ab.clone();
+
+        thread::spawn(move || {
+            let s = Duration::from_millis(1000 / DRAW_RATE);
+
+            while ab1.load(Ordering::Acquire) {
+                pb_run1.tick();
+                pb_curr1.tick();
+                thread::sleep(s);
+            }
+        })
+    };
 
     let mp_handler = thread::spawn(move || mp.join());
 
@@ -70,8 +73,6 @@ fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
 
         ab.store(false, Ordering::Release);
 
-        // as we are returning a Box<dyn error::Error> we can not move to to the
-        // parent thread :(
         res
     });
 

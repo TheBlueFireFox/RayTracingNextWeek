@@ -1,14 +1,6 @@
 use std::{cell::RefCell, sync::Arc};
 
-use ray_tracing::{
-    hittable::{HittableList, RotateY, Translate},
-    material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal},
-    objects::{rect, Cube, MovingSphere, Sphere},
-    rand_range,
-    ray::{Point, Vec3},
-    render::Color,
-    texture::{CheckerTexture, ImageTexture, NoiseTexture},
-};
+use ray_tracing::{hittable::{HittableList, RotateY, Translate}, material::{Dielectric, DiffuseLight, Lambertian, Mat, Metal}, medium, objects::{rect, Cube, MovingSphere, Sphere}, rand_range, ray::{Point, Vec3}, render::Color, texture::{CheckerTexture, ImageTexture, NoiseTexture}};
 
 #[allow(unused)]
 pub enum Worlds {
@@ -17,6 +9,7 @@ pub enum Worlds {
     RandomScene,
     SimpleLight,
     CornellBox,
+    CornellBoxSmoke,
     Earth,
 }
 
@@ -62,6 +55,52 @@ pub fn cornell_box() -> HittableList {
     }
 
     world
+}
+
+pub fn cornell_box_smoke() -> HittableList {
+    let mut world = HittableList::new();
+
+    // Setup colors
+    let red = Lambertian::new([0.65, 0.05, 0.05].into());
+    let white = Lambertian::new([0.73, 0.73, 0.73].into());
+    let green = Lambertian::new([0.12, 0.45, 0.15].into());
+    let light = DiffuseLight::new([15.0, 15.0, 15.0].into());
+
+    // Walls
+    for (k, mp) in [(555.0, green), (0.0, red)] {
+        let yz = rect::YZ::new(mp, (0.0, 555.0), (0.0, 555.0), k);
+        world.add(yz);
+    }
+
+    world.add(rect::XZ::new(light, (213.0, 343.0), (227.0, 332.0), 554.0));
+
+    for k in [555.0, 0.0] {
+        let xz = rect::XZ::new(white.clone(), (0.0, 555.0), (0.0, 555.0), k);
+        world.add(xz);
+    }
+
+    world.add(rect::XY::new(
+        white.clone(),
+        (0.0, 555.0),
+        (0.0, 555.0),
+        555.0,
+    ));
+
+    // Cubes in the middle
+    let cubes = [
+        ([165.0, 333.0, 165.0], 15.0, [265.0, 0.0, 295.0], Color::zeros()),
+        ([165.0, 165.0, 165.0], -18.0, [130.0, 0.0, 65.0], Color::ones()),
+    ];
+    for (pos, ang, tra, col) in cubes {
+        let cube = Cube::new(&Point::zeros(), &pos.into(), white.clone());
+        let cube = RotateY::new(cube, ang);
+        let cube = Translate::new(cube, tra.into());
+        let cube = medium::Constant::new(cube, 0.01, &col);
+        world.add(cube);
+    }
+
+    world
+
 }
 
 pub fn simple_light() -> HittableList {
