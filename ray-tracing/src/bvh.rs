@@ -36,54 +36,60 @@ impl BvhNode {
         time0: f64,
         time1: f64,
     ) -> Self {
-        let axis = rand_range(0..=2);
-
-        let comparator: &dyn Fn(&HittableObject, &HittableObject) -> Ordering = match axis {
+        let comparator: &dyn Fn(&HittableObject, &HittableObject) -> Ordering;
+        comparator = match rand_range(0..=2) {
             0 => &box_x_compare,
             1 => &box_y_compare,
             _ => &box_z_compare,
         };
 
+        assert!(start < end , "start should be smaller then the end");
+
         let object_span = end - start;
 
-        let left;
-        let right;
-
-        match object_span {
-            1 => {
-                left = objects[start].clone();
-                right = objects[start].clone();
-            }
+        let (left, right) = match object_span {
+            1 => (objects[start].clone(), objects[start].clone()),
             2 => match comparator(&objects[start], &objects[start + 1]) {
-                Ordering::Less => {
-                    left = objects[start].clone();
-                    right = objects[start + 1].clone();
-                }
-                _ => {
-                    left = objects[start + 1].clone();
-                    right = objects[start].clone();
-                }
+                Ordering::Greater => (objects[start + 1].clone(), objects[start].clone()),
+                _ => (objects[start].clone(), objects[start + 1].clone()),
             },
             _ => {
-                objects.sort_by(comparator);
+                // Don't care about reordering here
+                objects.sort_unstable_by(comparator);
+
                 let mid = start + object_span / 2;
 
-                left = Arc::new(Self::from_list(objects, start, mid, time0, time1));
-                right = Arc::new(Self::from_list(objects, mid, end, time0, time1));
-            }
-        }
+                let left = Arc::new(Self::inner_from_list(objects, start, mid, time0, time1));
+                let right = Arc::new(Self::inner_from_list(objects, mid, end, time0, time1));
 
-        let mut box_left = Aabb::default();
-        let mut box_right = Aabb::default();
-        assert!(
-            !left.bounding_box(time0, time1, &mut box_left)
-                || !right.bounding_box(time0, time1, &mut box_right),
-            "No bounding box in bvh_node constructor.\n"
-        );
+                (left as Arc<dyn Hittable>, right as Arc<dyn Hittable>)
+            }
+        };
+
+        let (box_left, box_right) = Self::check_cond(&left, &right, (time0, time1))
+            .expect("No bounding box in bvh_node constructor.");
 
         let ibox = Aabb::surrounding_box(&box_left, &box_right);
 
         Self { left, right, ibox }
+    }
+
+    fn check_cond(
+        left: &HittableObject,
+        right: &HittableObject,
+        time: (f64, f64),
+    ) -> Option<(Aabb, Aabb)> {
+        let mut box_left = Aabb::default();
+        let mut box_right = Aabb::default();
+
+        let l = !left.bounding_box(time.0, time.1, &mut box_left);
+        let r = !right.bounding_box(time.0, time.1, &mut box_right);
+
+        if l || r {
+            None
+        } else {
+            Some((box_left, box_right))
+        }
     }
 
     /// Get a clone to the bvh node's left.
@@ -109,32 +115,34 @@ impl Hittable for BvhNode {
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        if self.ibox.hit(r, t_min, t_max) {
+        if !self.ibox.hit(r, t_min, t_max) {
             return false;
         }
         let hit_left = self.left.hit(r, t_min, t_max, rec);
-        let hit_right = self.right.hit(r, t_min, t_max, rec);
+
+        let using = if hit_left { rec.t } else { t_max };
+
+        let hit_right = self.right.hit(r, t_min, using, rec);
 
         return hit_left || hit_right;
     }
 }
 
 fn box_compare(a: &HittableObject, b: &HittableObject, axis: usize) -> Ordering {
-    let mut box_a = Aabb::default();
-    let mut box_b = Aabb::default();
-
-    assert!(
-        !a.bounding_box(0.0, 0.0, &mut box_a) || !b.bounding_box(0.0, 0.0, &mut box_b),
-        "No bounding box in bvh_node constructor.\n"
-    );
+    let (box_a, box_b) = BvhNode::check_cond(a, b, (0.0, 0.0)).unwrap_or_else(|| {
+        panic!(
+            "No bounding box in bvh_node box compare found during a box compare with axis {}.",
+            axis
+        )
+    });
 
     // As there currently is no total_cmp implemented
     // we are going to assume that no illegal values
     // are used here
     let left = box_a.min().data()[axis];
     let right = box_b.min().data()[axis];
-    left.partial_cmp(&right)
-        .expect("illegal f64 value was used here, no NaN or Inf allowed")
+
+    f64::partial_cmp(&left, &right).expect("illegal f64 value was used here, no NaN or Inf allowed")
 }
 
 fn box_x_compare(a: &HittableObject, b: &HittableObject) -> Ordering {

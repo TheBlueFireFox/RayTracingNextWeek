@@ -2,7 +2,7 @@ use std::mem;
 
 use crate::ray::{Point, Ray};
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone)]
 pub struct Aabb {
     minimum: Point,
     maximum: Point,

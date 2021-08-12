@@ -217,7 +217,7 @@ where
     H: Hittable,
 {
     fn bounding_box(&self, _time0: f64, _time11: f64, output: &mut Aabb) -> bool {
-        *output = self.bbox;
+        *output = self.bbox.clone();
         self.hasbox
     }
 

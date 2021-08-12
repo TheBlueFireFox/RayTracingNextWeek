@@ -25,10 +25,12 @@ pub enum Worlds {
 }
 
 pub fn final_scene() -> anyhow::Result<HittableList> {
-    let mut cubes = HittableList::new();
-    let ground = Lambertian::new([0.48, 0.83, 0.53].into());
+    let mut objects = HittableList::new();
 
-    const CUBE_PER_SIDE: usize = 10;
+    const CUBE_PER_SIDE: usize = 20;
+
+    let mut cubes = HittableList::with_capacity(CUBE_PER_SIDE * CUBE_PER_SIDE);
+    let ground = Lambertian::new([0.48, 0.83, 0.53].into());
 
     for i in 0..CUBE_PER_SIDE {
         for j in 0..CUBE_PER_SIDE {
@@ -45,8 +47,7 @@ pub fn final_scene() -> anyhow::Result<HittableList> {
         }
     }
 
-    let mut objects = HittableList::new();
-    objects.add(cubes);
+    objects.add(BvhNode::from_hittable_list(&cubes, 0.0, 1.0));
 
     let light = DiffuseLight::new([7.0, 7.0, 7.0].into());
     objects.add(rect::XZ::new(light, (123.0, 423.0), (147.0, 412.0), 554.0));
@@ -103,19 +104,19 @@ pub fn final_scene() -> anyhow::Result<HittableList> {
         Arc::new(Lambertian::with_texture(pertext)),
     ));
 
-    let mut cubes = HittableList::new();
-    let white = Arc::new(Lambertian::new([0.73, 0.73,0.73].into()));
-    const NS: usize = 1000;
+   let mut cubes = HittableList::new();
+   let white = Arc::new(Lambertian::new([0.73, 0.73, 0.73].into()));
+   const NS: usize = 1000;
 
-    for _ in 0..NS {
-        let sphere = Sphere::new(Point::random_range(0.0..165.0), 10.0, white.clone());
-        cubes.add(sphere);
-    }
+   for _ in 0..NS {
+       let sphere = Sphere::new(Point::random_range(0.0..165.0), 10.0, white.clone());
+       cubes.add(sphere);
+   }
 
-    objects.add(Translate::new(
-        RotateY::new(BvhNode::from_hittable_list(&cubes, 0.0, 1.0), 15.0),
-        [-100.0, 270.0, 395.0].into(),
-    ));
+   objects.add(Translate::new(
+       RotateY::new(BvhNode::from_hittable_list(&cubes, 0.0, 1.0), 15.0),
+       [-100.0, 270.0, 395.0].into(),
+   ));
 
     Ok(objects)
 }

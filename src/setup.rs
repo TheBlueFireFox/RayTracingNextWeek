@@ -136,7 +136,9 @@ fn irun<H: Hittable>(world: &H, conf: &Config, pb: ProgressBar, cam: &Camera) ->
         res.into()
     };
 
-    let data: Vec<_> = (0..conf.image_height)
+    pb.println("processing");
+
+    (0..conf.image_height)
         .into_par_iter()
         .rev()
         .progress_with(pb)
@@ -156,8 +158,7 @@ fn irun<H: Hittable>(world: &H, conf: &Config, pb: ProgressBar, cam: &Camera) ->
                 })
                 .collect::<Vec<_>>()
         })
-        .collect();
-    data
+        .collect()
 }
 
 pub struct WorldSettings {
