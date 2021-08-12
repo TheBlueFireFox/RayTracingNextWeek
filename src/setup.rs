@@ -218,8 +218,8 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         }
         Worlds::FinalScene => {
             world_conf.set_aspect_ratio(1.0);
-            world_conf.set_image_width(600);
-            world_conf.samples_per_pixel = 200;
+            world_conf.set_image_width(800);
+            world_conf.samples_per_pixel = 10000;
             world_conf.background = Color::zeros();
             lookfrom = [478.0, 278.0, -600.0].into();
             lookat = [278.0, 278.0, 0.0].into();
