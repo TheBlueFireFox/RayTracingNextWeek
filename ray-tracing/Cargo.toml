@@ -1,21 +1,22 @@
 [package]
+edition = "2018"
 name = "ray-tracing"
 version = "0.1.0"
-edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-progressbar = ["indicatif"] 
+default = []
+progressbar = ["indicatif"]
 
 [dependencies]
-rayon = "1.5"
+anyhow = "1.0"
+cfg-if = "1.0"
 image = "0.23"
+indicatif = {version = "0.16", optional = true, features = ["rayon"]}
+itertools = "0.10"
 num-traits = "0.2"
 rand = "0.8"
-anyhow = "1.0"
-itertools = "0.10"
-cfg-if = "1.0"
-indicatif = { version = "0.16", optional = true, features = ["rayon"] }
+rayon = {version = "1.5"}
 
 [dev-dependencies]
 tempfile = "3.2"

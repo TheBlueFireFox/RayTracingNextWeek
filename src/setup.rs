@@ -17,7 +17,7 @@ pub struct WorldSettings {
 pub fn setup() -> anyhow::Result<WorldSettings> {
     // World settigns
     let mut world_conf = Config::default();
-    world_conf.background = [0.7, 0.8, 1.0].into();
+    world_conf.set_background([0.7, 0.8, 1.0].into());
 
     // Camera settings
     let mut lookfrom = Point::new(13.0, 2.0, 3.0);
@@ -39,15 +39,15 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         Worlds::SimpleLight => {
             lookfrom = [26.0, 3.0, 6.0].into();
             lookat = [0.0, 2.0, 0.0].into();
-            world_conf.samples_per_pixel = 400;
-            world_conf.background = Color::zeros();
+            world_conf.set_samples_per_pixel(400);
+            world_conf.set_background(Color::zeros());
             scenes::simple_light()
         }
         Worlds::CornellBox => {
             world_conf.set_aspect_ratio(1.0);
             world_conf.set_image_width(600);
-            world_conf.samples_per_pixel = 200;
-            world_conf.background = Color::zeros();
+            world_conf.set_samples_per_pixel(200);
+            world_conf.set_background(Color::zeros());
             lookfrom = [278.0, 278.0, -800.0].into();
             lookat = [278.0, 278.0, 0.0].into();
             vfov = 40.0;
@@ -56,8 +56,8 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         Worlds::CornellBoxSmoke => {
             world_conf.set_aspect_ratio(1.0);
             world_conf.set_image_width(600);
-            world_conf.samples_per_pixel = 200;
-            world_conf.background = Color::zeros();
+            world_conf.set_samples_per_pixel(200);
+            world_conf.set_background(Color::zeros());
             lookfrom = [278.0, 278.0, -800.0].into();
             lookat = [278.0, 278.0, 0.0].into();
             vfov = 40.0;
@@ -66,8 +66,8 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         Worlds::FinalScene => {
             world_conf.set_aspect_ratio(1.0);
             world_conf.set_image_width(600);
-            world_conf.samples_per_pixel = 100;
-            world_conf.background = Color::zeros();
+            world_conf.set_samples_per_pixel(100);
+            world_conf.set_background(Color::zeros());
             lookfrom = [478.0, 278.0, -600.0].into();
             lookat = [278.0, 278.0, 0.0].into();
             vfov = 40.0;

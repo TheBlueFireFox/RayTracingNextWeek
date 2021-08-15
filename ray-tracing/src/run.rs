@@ -21,10 +21,10 @@ pub struct Config {
     aspect_ratio: f64,
     image_width: usize,
     image_height: usize,
-    pub samples_per_pixel: usize,
-    pub max_depth: usize,
-    pub gamma: f64,
-    pub background: Color,
+    samples_per_pixel: usize,
+    max_depth: usize,
+    gamma: f64,
+    background: Color,
 }
 
 impl Config {
@@ -57,6 +57,36 @@ impl Config {
     pub fn set_aspect_ratio(&mut self, aspect_ratio: f64) {
         self.aspect_ratio = aspect_ratio;
         self.fix_image_height();
+    }
+
+    /// Get a reference to the config's samples per pixel.
+    pub fn samples_per_pixel(&self) -> &usize {
+        &self.samples_per_pixel
+    }
+
+    /// Get a reference to the config's max depth.
+    pub fn max_depth(&self) -> &usize {
+        &self.max_depth
+    }
+
+    /// Get a reference to the config's gamma.
+    pub fn gamma(&self) -> &f64 {
+        &self.gamma
+    }
+
+    /// Get a reference to the config's background.
+    pub fn background(&self) -> &Color {
+        &self.background
+    }
+
+    /// Set the config's samples per pixel.
+    pub fn set_samples_per_pixel(&mut self, samples_per_pixel: usize) {
+        self.samples_per_pixel = samples_per_pixel;
+    }
+
+    /// Set the config's background.
+    pub fn set_background(&mut self, background: Color) {
+        self.background = background;
     }
 }
 
@@ -107,19 +137,12 @@ fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) 
 #[cfg(feature = "progressbar")]
 use indicatif::{ParallelProgressIterator, ProgressBar};
 
-#[cfg(feature = "progressbar")]
 struct Runner<'hit, 'conf, 'cam, H: Hittable> {
     world: &'hit H,
     conf: &'conf Config,
     cam: &'cam Camera,
+    #[cfg(feature = "progressbar")]
     pb: ProgressBar,
-}
-
-#[cfg(not(feature = "progressbar"))]
-struct Runner<'hit, 'conf, 'cam, H: Hittable> {
-    world: &'hit H,
-    conf: &'conf Config,
-    cam: &'cam Camera,
 }
 
 impl<'hit, 'conf, 'cam, H: Hittable> Runner<'hit, 'conf, 'cam, H> {
@@ -172,13 +195,12 @@ impl<'hit, 'conf, 'cam, H: Hittable> Runner<'hit, 'conf, 'cam, H> {
                 })
                 .collect::<Vec<_>>()
         };
+        let data = (0..self.conf.image_height).into_par_iter().rev();
 
         cfg_if! {
-           if #[cfg(feature = "progressbar")] {
-            let data = (0..self.conf.image_height).into_par_iter().rev().progress_with(self.pb.clone());
-            } else {
-            let data = (0..self.conf.image_height).into_par_iter().rev();
-            }
+            if #[cfg(feature = "progressbar")] {
+                let data = data.progress_with(self.pb.clone());
+            } 
         }
 
         data.flat_map(inner).collect()
