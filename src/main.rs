@@ -8,15 +8,46 @@ use std::{
     time::Duration,
 };
 
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressIterator, ProgressStyle};
 use ray_tracing::{Config, render::{self, Color, Image}};
+use scenes::{WorldSettings, scenes::Worlds};
 
-pub mod scenes;
-pub mod setup;
+
+pub const REPETITION: usize = 1;
+const WORLD: Worlds = Worlds::FinalScene;
+
+pub fn run(
+    WorldSettings { conf, world, cam }: &WorldSettings,
+    pb_run: ProgressBar,
+    pb_int: ProgressBar,
+) -> anyhow::Result<Vec<Color>> {
+    pb_run.set_position(0);
+
+    // run
+    // SAFETY: the unwrap is safe here as we know
+    // that there allways will be a result.
+    let mut res = (0..REPETITION)
+        .map(|_| ray_tracing::run(world, &conf, pb_int.clone(), &cam))
+        .progress_with(pb_run)
+        .reduce(|mut acc, v| {
+            for (a, b) in acc.iter_mut().zip(v.iter()) {
+                *a += *b;
+            }
+            acc
+        })
+        .unwrap();
+
+    let len = REPETITION as f64;
+    for val in res.iter_mut() {
+        *val /= len;
+    }
+
+    Ok(res)
+}
 
 pub fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
     // setup render
-    let settings = setup::setup()?;
+    let settings =  scenes::setup(WORLD)?;
     let conf = settings.conf.clone();
 
     // ProgressBar
@@ -39,7 +70,7 @@ pub fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
         pb
     };
 
-    let pb_run = setup(setup::REPETITION);
+    let pb_run = setup(REPETITION);
     let pb_curr = setup(conf.image_height());
 
     let ab = Arc::new(AtomicBool::new(true));
@@ -64,7 +95,7 @@ pub fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
     let mp_handler = thread::spawn(move || mp.join());
 
     let data = thread::spawn(move || {
-        let res = setup::run(&settings, pb_run.clone(), pb_curr.clone());
+        let res = run(&settings, pb_run.clone(), pb_curr.clone());
 
         for pb in [pb_curr, pb_run] {
             pb.finish();

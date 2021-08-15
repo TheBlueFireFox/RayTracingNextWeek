@@ -1,20 +1,14 @@
-use indicatif::{ProgressBar, ProgressIterator};
-
 use ray_tracing::{camera::Camera, hittable::HittableList, ray::Point, render::Color, Config};
 
 use crate::scenes::{self, Worlds};
 
-const WORLD: Worlds = Worlds::FinalScene;
-
-pub const REPETITION: usize = 1;
-
 pub struct WorldSettings {
     pub conf: Config,
-    world: HittableList,
-    cam: Camera,
+    pub world: HittableList,
+    pub cam: Camera,
 }
 
-pub fn setup() -> anyhow::Result<WorldSettings> {
+pub fn setup(chosen: Worlds) -> anyhow::Result<WorldSettings> {
     // World settigns
     let mut world_conf = Config::default();
     world_conf.set_background([0.7, 0.8, 1.0].into());
@@ -28,7 +22,7 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
     let mut vfov = 20.0;
 
     // World
-    let world = match WORLD {
+    let world = match chosen {
         Worlds::RandomScene => {
             aperture = 0.1;
             scenes::random_scene()
@@ -93,33 +87,4 @@ pub fn setup() -> anyhow::Result<WorldSettings> {
         world,
         cam,
     })
-}
-
-pub fn run(
-    WorldSettings { conf, world, cam }: &WorldSettings,
-    pb_run: ProgressBar,
-    pb_int: ProgressBar,
-) -> anyhow::Result<Vec<Color>> {
-    pb_run.set_position(0);
-
-    // run
-    // SAFETY: the unwrap is safe here as we know
-    // that there allways will be a result.
-    let mut res = (0..REPETITION)
-        .map(|_| ray_tracing::run(world, &conf, pb_int.clone(), &cam))
-        .progress_with(pb_run)
-        .reduce(|mut acc, v| {
-            for (a, b) in acc.iter_mut().zip(v.iter()) {
-                *a += *b;
-            }
-            acc
-        })
-        .unwrap();
-
-    let len = REPETITION as f64;
-    for val in res.iter_mut() {
-        *val /= len;
-    }
-
-    Ok(res)
 }

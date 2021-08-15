@@ -1,18 +1,19 @@
 [package]
+edition = "2018"
 name = "ray-tracing-weekend"
 version = "0.1.0"
-edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["ray-tracing"]
+members = ["ray-tracing", "scenes"]
 
 [dependencies]
-console = "0.14"
-indicatif = {version = "0.16" }
-ray-tracing = { path = "ray-tracing", features = ["progressbar"] }
 anyhow = "1.0"
+console = "0.14"
+indicatif = {version = "0.16"}
+ray-tracing = {path = "ray-tracing", features = ["progressbar"]}
+scenes = {path = "scenes"}
 
 [profile.release]
 debug = true
@@ -21,5 +22,5 @@ debug = true
 criterion = "0.3"
 
 [[bench]]
-name = "my_benchmark"
 harness = false
+name = "my_benchmark"
