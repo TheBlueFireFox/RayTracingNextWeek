@@ -9,13 +9,12 @@ use std::{
 };
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use ray_tracing::render::{self, Color, Image};
-use setup::Config;
+use ray_tracing::{Config, render::{self, Color, Image}};
 
-mod scenes;
-mod setup;
+pub mod scenes;
+pub mod setup;
 
-fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
+pub fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
     // setup render
     let settings = setup::setup()?;
     let conf = settings.conf.clone();
@@ -40,7 +39,7 @@ fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
         pb
     };
 
-    let pb_run = setup(conf.rep);
+    let pb_run = setup(setup::REPETITION);
     let pb_curr = setup(conf.image_height());
 
     let ab = Arc::new(AtomicBool::new(true));

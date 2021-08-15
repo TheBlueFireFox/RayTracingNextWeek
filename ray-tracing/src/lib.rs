@@ -14,5 +14,8 @@ pub mod texture;
 mod helpers;
 mod perlin;
 
+mod run;
+pub use run::*;
+
 mod rtweekend;
 pub use rtweekend::*;

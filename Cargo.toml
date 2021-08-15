@@ -9,12 +9,17 @@ edition = "2018"
 members = ["ray-tracing"]
 
 [dependencies]
-rayon = "1.5"
 console = "0.14"
-indicatif = {version = "0.16", features = ["rayon"] }
-ray-tracing = { path = "ray-tracing" }
+indicatif = {version = "0.16" }
+ray-tracing = { path = "ray-tracing", features = ["progressbar"] }
 anyhow = "1.0"
 
 [profile.release]
 debug = true
 
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "my_benchmark"
+harness = false
