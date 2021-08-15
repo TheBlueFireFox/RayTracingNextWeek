@@ -43,7 +43,7 @@ impl BvhNode {
             _ => &box_z_compare,
         };
 
-        assert!(start < end , "start should be smaller then the end");
+        assert!(start < end, "start should be smaller then the end");
 
         let object_span = end - start;
 
@@ -79,16 +79,12 @@ impl BvhNode {
         right: &HittableObject,
         time: (f64, f64),
     ) -> Option<(Aabb, Aabb)> {
-        let mut box_left = Aabb::default();
-        let mut box_right = Aabb::default();
+        let l = left.bounding_box(time.0, time.1);
+        let r = right.bounding_box(time.0, time.1);
 
-        let l = !left.bounding_box(time.0, time.1, &mut box_left);
-        let r = !right.bounding_box(time.0, time.1, &mut box_right);
-
-        if l || r {
-            None
-        } else {
-            Some((box_left, box_right))
+        match (l, r) {
+            (Some(left), Some(right)) => Some((left, right)),
+            _ => None,
         }
     }
 
@@ -109,9 +105,8 @@ impl BvhNode {
 }
 
 impl Hittable for BvhNode {
-    fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
-        *output = self.ibox.clone();
-        true
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(self.ibox.clone())
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {

@@ -34,7 +34,7 @@ impl HitRecord {
 }
 
 pub trait Hittable: Send + Sync {
-    fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool;
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb>;
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
 }
 
@@ -88,19 +88,17 @@ impl Hittable for HittableList {
         hit_anything
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         if self.objects.len() == 0 {
-            return false;
+            return None;
         }
-        let mut temp_box = Aabb::default();
         let mut first_box = true;
+        let mut output = Aabb::default();
 
         for obj in self.objects.iter() {
-            if !obj.bounding_box(time0, time1, &mut temp_box) {
-                return false;
-            }
+            let temp_box = obj.bounding_box(time0, time1)?;
 
-            *output = if first_box {
+            output = if first_box {
                 temp_box.clone()
             } else {
                 Aabb::surrounding_box(&output, &temp_box)
@@ -109,7 +107,7 @@ impl Hittable for HittableList {
             first_box = false;
         }
 
-        true
+        Some(output)
     }
 }
 
@@ -128,14 +126,12 @@ impl<H> Hittable for Translate<H>
 where
     H: Hittable,
 {
-    fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool {
-        if !self.ptr.bounding_box(time0, time1, output) {
-            return false;
-        }
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
+        let output = self.ptr.bounding_box(time0, time1)?;
 
-        *output = Aabb::new(*output.min() + self.offset, *output.max() + self.offset);
+        let output = Aabb::new(*output.min() + self.offset, *output.max() + self.offset);
 
-        true
+        Some(output)
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
@@ -157,8 +153,7 @@ pub struct RotateY<H: Hittable> {
     ptr: H,
     sin_theta: f64,
     cos_theta: f64,
-    hasbox: bool,
-    bbox: Aabb,
+    bbox: Option<Aabb>,
 }
 
 impl<H: Hittable> RotateY<H> {
@@ -167,9 +162,18 @@ impl<H: Hittable> RotateY<H> {
         let sin_theta = rads.sin();
         let cos_theta = rads.cos();
 
-        let mut bbox = Aabb::default();
-        let hasbox = p.bounding_box(0.0, 1.0, &mut bbox);
+        let bbox = p.bounding_box(0.0, 1.0);
 
+        Self {
+            ptr: p,
+            sin_theta,
+            cos_theta,
+            bbox: Self::calculate_bound(bbox, sin_theta, cos_theta),
+        }
+    }
+
+    fn calculate_bound(bbox: Option<Aabb>, sin_theta: f64, cos_theta: f64) -> Option<Aabb> {
+        let bbox = bbox?;
         let mut min = [f64::INFINITY; 3];
         let mut max = [-f64::INFINITY; 3];
 
@@ -201,14 +205,7 @@ impl<H: Hittable> RotateY<H> {
                 }
             }
         }
-
-        Self {
-            ptr: p,
-            sin_theta,
-            cos_theta,
-            hasbox,
-            bbox: Aabb::new(min.into(), max.into()),
-        }
+        Some(Aabb::new(min.into(), max.into()))
     }
 }
 
@@ -216,9 +213,8 @@ impl<H> Hittable for RotateY<H>
 where
     H: Hittable,
 {
-    fn bounding_box(&self, _time0: f64, _time11: f64, output: &mut Aabb) -> bool {
-        *output = self.bbox.clone();
-        self.hasbox
+    fn bounding_box(&self, _time0: f64, _time11: f64) -> Option<Aabb> {
+        self.bbox.clone()
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {

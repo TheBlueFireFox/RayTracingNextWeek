@@ -41,8 +41,8 @@ impl<H> Hittable for Constant<H>
 where
     H: Hittable,
 {
-    fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool {
-        self.boundary.bounding_box(time0, time1, output)
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
+        self.boundary.bounding_box(time0, time1)
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {

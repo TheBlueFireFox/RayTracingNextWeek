@@ -74,10 +74,9 @@ impl Hittable for Sphere {
         true
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
         let v = [self.radius; 3].into();
-        *output = Aabb::new(self.center - v, self.center + v);
-        true
+        Some(Aabb::new(self.center - v, self.center + v))
     }
 }
 
@@ -147,7 +146,7 @@ impl Hittable for MovingSphere {
         true
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64, output: &mut Aabb) -> bool {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         let calc = |time| {
             let cen = self.center(time);
             let vec_r = [self.radius; 3].into();
@@ -156,9 +155,7 @@ impl Hittable for MovingSphere {
         let box0 = calc(time0);
         let box1 = calc(time1);
 
-        *output = Aabb::surrounding_box(&box0, &box1);
-
-        true
+        Some(Aabb::surrounding_box(&box0, &box1))
     }
 }
 
@@ -206,9 +203,8 @@ impl Cube {
 }
 
 impl Hittable for Cube {
-    fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
-        *output = Aabb::new(self.box_min, self.box_max);
-        true
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(Aabb::new(self.box_min, self.box_max))
     }
 
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
@@ -238,14 +234,13 @@ pub mod rect {
     }
 
     impl Hittable for XY {
-        fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+        fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
             // The bounding box must have non-zero width in each dimension, so pad the Z
             // dimension a small amount.
-            *output = Aabb::new(
+            Some(Aabb::new(
                 [self.x.0, self.y.0, self.k - 0.0001].into(),
                 [self.x.1, self.y.1, self.k + 0.0001].into(),
-            );
-            true
+            ))
         }
 
         fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
@@ -300,14 +295,13 @@ pub mod rect {
     }
 
     impl Hittable for XZ {
-        fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+        fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
             // The bounding box must have non-zero width in each dimension, so pad the Y
             // dimension a small amount.
-            *output = Aabb::new(
+            Some(Aabb::new(
                 [self.x.0, self.k - 0.0001, self.z.0].into(),
                 [self.x.1, self.k + 0.0001, self.z.1].into(),
-            );
-            true
+            ))
         }
 
         fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
@@ -360,14 +354,13 @@ pub mod rect {
     }
 
     impl Hittable for YZ {
-        fn bounding_box(&self, _time0: f64, _time1: f64, output: &mut Aabb) -> bool {
+        fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
             // The bounding box must have non-zero width in each dimension, so pad the X
             // dimension a small amount.
-            *output = Aabb::new(
+            Some(Aabb::new(
                 [self.k - 0.0001, self.y.0, self.z.0].into(),
                 [self.k + 0.0001, self.y.1, self.z.1].into(),
-            );
-            true
+            ))
         }
 
         fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
