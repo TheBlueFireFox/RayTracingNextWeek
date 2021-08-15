@@ -81,36 +81,25 @@ impl Hittable for Sphere {
 }
 
 pub struct MovingSphere {
-    pub center0: Point,
-    pub center1: Point,
-    pub radius: f64,
-    pub time0: f64,
-    pub time1: f64,
-    pub mat: Mat,
+    center: (Point, Point),
+    radius: f64,
+    time: (f64, f64),
+    mat: Mat,
 }
 
 impl MovingSphere {
-    pub fn new(
-        center0: Point,
-        center1: Point,
-        time0: f64,
-        time1: f64,
-        radius: f64,
-        mat: Mat,
-    ) -> Self {
+    pub fn new(center: (Point, Point), time: (f64, f64), radius: f64, mat: Mat) -> Self {
         Self {
-            center0,
-            center1,
-            time0,
-            time1,
+            center,
+            time,
             radius,
             mat,
         }
     }
 
     pub fn center(&self, time: f64) -> Point {
-        self.center0
-            + ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
+        self.center.0
+            + ((time - self.time.0) / (self.time.1 - self.time.0)) * (self.center.1 - self.center.0)
     }
 }
 
@@ -216,24 +205,24 @@ impl Hittable for Cube {
 pub mod rect {
     use super::*;
 
-    pub struct XY {
-        mp: Mat,
+    pub struct XY<M> {
+        mp: Arc<M>,
         x: (f64, f64),
         y: (f64, f64),
         k: f64,
     }
 
-    impl XY {
-        pub fn new<M: Material + 'static>(mp: M, x: (f64, f64), y: (f64, f64), k: f64) -> Self {
+    impl<M: Material + 'static> XY<M> {
+        pub fn new(mp: M, x: (f64, f64), y: (f64, f64), k: f64) -> Self {
             Self::with_arc(Arc::new(mp), x, y, k)
         }
 
-        pub fn with_arc(mp: Mat, x: (f64, f64), y: (f64, f64), k: f64) -> Self {
+        pub fn with_arc(mp: Arc<M>, x: (f64, f64), y: (f64, f64), k: f64) -> Self {
             Self { mp, x, y, k }
         }
     }
 
-    impl Hittable for XY {
+    impl<M: Material + 'static> Hittable for XY<M> {
         fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
             // The bounding box must have non-zero width in each dimension, so pad the Z
             // dimension a small amount.
@@ -277,24 +266,24 @@ pub mod rect {
         }
     }
 
-    pub struct XZ {
-        mp: Mat,
+    pub struct XZ<M: Material> {
+        mp: Arc<M>,
         x: (f64, f64),
         z: (f64, f64),
         k: f64,
     }
 
-    impl XZ {
-        pub fn new<M: Material + 'static>(mp: M, x: (f64, f64), z: (f64, f64), k: f64) -> Self {
+    impl<M: Material + 'static> XZ<M> {
+        pub fn new(mp: M, x: (f64, f64), z: (f64, f64), k: f64) -> Self {
             Self::with_arc(Arc::new(mp), x, z, k)
         }
 
-        pub fn with_arc(mp: Mat, x: (f64, f64), z: (f64, f64), k: f64) -> Self {
+        pub fn with_arc(mp: Arc<M>, x: (f64, f64), z: (f64, f64), k: f64) -> Self {
             Self { mp, x, z, k }
         }
     }
 
-    impl Hittable for XZ {
+    impl<M: Material + 'static> Hittable for XZ<M> {
         fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
             // The bounding box must have non-zero width in each dimension, so pad the Y
             // dimension a small amount.
@@ -337,23 +326,23 @@ pub mod rect {
         }
     }
 
-    pub struct YZ {
-        mp: Mat,
+    pub struct YZ<M: Material + 'static> {
+        mp: Arc<M>,
         y: (f64, f64),
         z: (f64, f64),
         k: f64,
     }
 
-    impl YZ {
-        pub fn new<M: Material + 'static>(mp: M, y: (f64, f64), z: (f64, f64), k: f64) -> Self {
+    impl<M: Material + 'static> YZ<M> {
+        pub fn new(mp: M, y: (f64, f64), z: (f64, f64), k: f64) -> Self {
             Self::with_arc(Arc::new(mp), y, z, k)
         }
-        pub fn with_arc(mp: Mat, y: (f64, f64), z: (f64, f64), k: f64) -> Self {
+        pub fn with_arc(mp: Arc<M>, y: (f64, f64), z: (f64, f64), k: f64) -> Self {
             Self { mp, y, z, k }
         }
     }
 
-    impl Hittable for YZ {
+    impl<M: Material + 'static> Hittable for YZ<M> {
         fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
             // The bounding box must have non-zero width in each dimension, so pad the X
             // dimension a small amount.

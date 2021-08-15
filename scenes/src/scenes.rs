@@ -56,10 +56,8 @@ pub fn final_scene() -> anyhow::Result<HittableList> {
     let center2 = center1 + [30.0, 0.0, 0.0].into();
     let mam = Lambertian::new([0.7, 0.3, 0.1].into());
     objects.add(MovingSphere::new(
-        center1,
-        center2,
-        0.0,
-        1.0,
+        (center1, center2),
+        (0.0, 1.0),
         50.0,
         Arc::new(mam),
     ));
@@ -104,19 +102,19 @@ pub fn final_scene() -> anyhow::Result<HittableList> {
         Arc::new(Lambertian::with_texture(pertext)),
     ));
 
-   let mut cubes = HittableList::new();
-   let white = Arc::new(Lambertian::new([0.73, 0.73, 0.73].into()));
-   const NS: usize = 1000;
+    let mut cubes = HittableList::new();
+    let white = Arc::new(Lambertian::new([0.73, 0.73, 0.73].into()));
+    const NS: usize = 1000;
 
-   for _ in 0..NS {
-       let sphere = Sphere::new(Point::random_range(0.0..165.0), 10.0, white.clone());
-       cubes.add(sphere);
-   }
+    for _ in 0..NS {
+        let sphere = Sphere::new(Point::random_range(0.0..165.0), 10.0, white.clone());
+        cubes.add(sphere);
+    }
 
-   objects.add(Translate::new(
-       RotateY::new(BvhNode::from_hittable_list(&cubes, 0.0, 1.0), 15.0),
-       [-100.0, 270.0, 395.0].into(),
-   ));
+    objects.add(Translate::new(
+        RotateY::new(BvhNode::from_hittable_list(&cubes, 0.0, 1.0), 15.0),
+        [-100.0, 270.0, 395.0].into(),
+    ));
 
     Ok(objects)
 }
@@ -307,7 +305,7 @@ pub fn random_scene() -> HittableList {
             .borrow_mut()
             .as_mut()
             .unwrap()
-            .add(MovingSphere::new(c1, c2, t1, t2, r, m));
+            .add(MovingSphere::new((c1, c2), (t1, t2), r, m));
     };
 
     let make_lam = |p: Color| Arc::new(Lambertian::new(p));

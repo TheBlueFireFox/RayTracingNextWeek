@@ -25,26 +25,22 @@ pub trait Material: Send + Sync {
 }
 
 #[derive(Clone)]
-pub struct Lambertian {
-    albedo: Arc<dyn Texture>,
+pub struct Lambertian<T> {
+    albedo: T,
 }
 
-impl Lambertian {
+impl Lambertian<SolidColor> {
     pub fn new(a: Color) -> Self {
         Self::with_texture(SolidColor::new(a))
     }
-
-    pub fn with_texture<T>(a: T) -> Self
-    where
-        T: Texture + 'static,
-    {
-        Self {
-            albedo: Arc::new(a),
-        }
+}
+impl<T: Texture> Lambertian<T> {
+    pub fn with_texture(albedo: T) -> Self {
+        Self { albedo }
     }
 }
 
-impl Material for Lambertian {
+impl<T: Texture> Material for Lambertian<T> {
     fn scatter(
         &self,
         r_in: &Ray,
@@ -149,23 +145,23 @@ impl Material for Dielectric {
 }
 
 #[derive(Clone)]
-pub struct DiffuseLight {
-    emit: Arc<dyn Texture>,
+pub struct DiffuseLight<T: Texture> {
+    emit: T,
 }
-
-impl DiffuseLight {
+impl DiffuseLight<SolidColor> {
     pub fn new(c: Color) -> Self {
         let solid = SolidColor::new(c);
         Self::with_texture(solid)
     }
+}
 
-    pub fn with_texture<T: Texture + 'static>(emit: T) -> Self {
-        let iemit = Arc::new(emit);
-        Self { emit: iemit }
+impl<T: Texture> DiffuseLight<T> {
+    pub fn with_texture(emit: T) -> Self {
+        Self { emit }
     }
 }
 
-impl Material for DiffuseLight {
+impl<T: Texture> Material for DiffuseLight<T> {
     fn scatter(
         &self,
         _r_in: &Ray,

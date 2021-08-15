@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::path::Path;
 
 use crate::{
     clamp,
@@ -12,6 +12,7 @@ pub trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: &Point) -> Color;
 }
 
+#[derive(Clone)]
 pub struct SolidColor {
     color_value: Color,
 }
@@ -28,29 +29,31 @@ impl Texture for SolidColor {
     }
 }
 
-pub struct CheckerTexture {
-    odd: Arc<dyn Texture>,
-    even: Arc<dyn Texture>,
+pub struct CheckerTexture<O, E> {
+    odd: O,
+    even: E,
 }
 
-impl CheckerTexture {
+impl CheckerTexture<SolidColor, SolidColor> {
     pub fn with_color(even: Color, odd: Color) -> Self {
         Self::with_texture(SolidColor::new(even), SolidColor::new(odd))
     }
-
-    pub fn with_texture<O, E>(even: O, odd: E) -> Self
-    where
-        O: Texture + 'static,
-        E: Texture + 'static,
-    {
-        Self {
-            odd: Arc::new(odd),
-            even: Arc::new(even),
-        }
+}
+impl<O, E> CheckerTexture<O, E>
+where
+    O: Texture,
+    E: Texture,
+{
+    pub fn with_texture(even: E, odd: O) -> Self {
+        Self { odd, even }
     }
 }
 
-impl Texture for CheckerTexture {
+impl<O, E> Texture for CheckerTexture<O, E>
+where
+    O: Texture,
+    E: Texture,
+{
     fn value(&self, u: f64, v: f64, p: &Point) -> Color {
         let calc = |v: f64| f64::sin(10.0 * v);
         let sines = calc(p.x()) * calc(p.y()) * calc(p.z());
