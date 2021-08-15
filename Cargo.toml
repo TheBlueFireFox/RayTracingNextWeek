@@ -17,10 +17,3 @@ scenes = {path = "scenes"}
 
 [profile.release]
 debug = true
-
-[dev-dependencies]
-criterion = "0.3"
-
-[[bench]]
-harness = false
-name = "my_benchmark"

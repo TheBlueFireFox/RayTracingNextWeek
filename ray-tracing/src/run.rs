@@ -179,7 +179,7 @@ impl<'hit, 'conf, 'cam, H: Hittable> Runner<'hit, 'conf, 'cam, H> {
             }
         }
 
-        let inner = |j| {
+        let inner = |&j| {
             (0..self.conf.image_width)
                 .map(|i| {
                     let pixel_color = (0..self.conf.samples_per_pixel)
@@ -195,7 +195,9 @@ impl<'hit, 'conf, 'cam, H: Hittable> Runner<'hit, 'conf, 'cam, H> {
                 })
                 .collect::<Vec<_>>()
         };
-        let data = (0..self.conf.image_height).into_par_iter().rev();
+
+        let range = (0..self.conf.image_height).collect::<Vec<_>>();
+        let data = range.par_iter().rev();
 
         cfg_if! {
             if #[cfg(feature = "progressbar")] {
