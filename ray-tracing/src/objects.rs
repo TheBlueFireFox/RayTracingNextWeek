@@ -40,7 +40,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = *r.origin() - self.center;
         let a = r.direction().length_squared();
         let half_b = Vec3::dot(&oc, &r.direction());
@@ -108,7 +108,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = *r.origin() - self.center(r.time());
         let a = r.direction().length_squared();
         let half_b = Vec3::dot(&oc, &r.direction());
@@ -203,7 +203,7 @@ impl Hittable for Cube {
         Some(Aabb::new(self.box_min, self.box_max))
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.sides.hit(r, t_min, t_max)
     }
 }
@@ -239,7 +239,7 @@ pub mod rect {
             ))
         }
 
-        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
             let org = r.origin();
             let dir = r.direction();
 
@@ -302,7 +302,7 @@ pub mod rect {
             ))
         }
 
-        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
             let org = r.origin();
             let dir = r.direction();
             let t = (self.k - org.y()) / dir.y();
@@ -363,7 +363,7 @@ pub mod rect {
             ))
         }
 
-        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
             let org = r.origin();
             let dir = r.direction();
             let t = (self.k - org.x()) / dir.x();

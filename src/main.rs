@@ -9,9 +9,11 @@ use std::{
 };
 
 use indicatif::{MultiProgress, ProgressBar, ProgressIterator, ProgressStyle};
-use ray_tracing::{Config, render::{self, Color, Image}};
-use scenes::{WorldSettings, scenes::Worlds};
-
+use ray_tracing::{
+    render::{self, Color, Image},
+    Config,
+};
+use scenes::{scenes::Worlds, WorldSettings};
 
 pub const REPETITION: usize = 1;
 const WORLD: Worlds = Worlds::FinalScene;
@@ -47,7 +49,7 @@ pub fn run(
 
 pub fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
     // setup render
-    let settings =  scenes::setup(WORLD)?;
+    let settings = scenes::setup(WORLD)?;
     let conf = settings.conf.clone();
 
     // ProgressBar

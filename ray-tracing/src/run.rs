@@ -1,13 +1,7 @@
 use cfg_if::cfg_if;
 use rayon::prelude::*;
 
-use crate::{
-    camera::Camera,
-    clamp,
-    hittable::Hittable,
-    ray::{Ray, Vec3},
-    render::Color,
-};
+use crate::{camera::Camera, clamp, hittable::Hittable, ray::Ray, render::Color};
 
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 const IMAGE_WIDTH: usize = 160 * 4;
@@ -116,9 +110,6 @@ fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) 
         None => return *background,
     };
 
-    let mut scattered = Ray::new(Vec3::zeros(), Vec3::zeros());
-    let mut attenuation = Color::zeros();
-
     let mat = rec
         .mat
         .as_ref()
@@ -126,10 +117,11 @@ fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) 
 
     let emitted = mat.emitted(rec.u, rec.v, &rec.p);
 
-    if !mat.scatter(r, &rec, &mut attenuation, &mut scattered) {
-        emitted
-    } else {
-        emitted + attenuation * ray_color(&scattered, background, world, depth - 1)
+    match mat.scatter(r, &rec) {
+        Some((attenuation, scattered)) => {
+            emitted + attenuation * ray_color(&scattered, background, world, depth - 1)
+        }
+        None => emitted,
     }
 }
 

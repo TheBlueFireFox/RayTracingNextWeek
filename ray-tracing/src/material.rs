@@ -11,13 +11,7 @@ use crate::{
 pub type Mat = Arc<dyn Material>;
 
 pub trait Material: Send + Sync {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Color,
-        scattered: &mut Ray,
-    ) -> bool;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)>;
 
     fn emitted(&self, _u: f64, _v: f64, _p: &Point) -> Color {
         Color::zeros()
@@ -41,21 +35,15 @@ impl<T: Texture> Lambertian<T> {
 }
 
 impl<T: Texture> Material for Lambertian<T> {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Color,
-        scattered: &mut Ray,
-    ) -> bool {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)> {
         let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
         if scatter_direction.near_zero() {
             scatter_direction = rec.normal;
         }
-        *scattered = Ray::with_time(rec.p, scatter_direction, r_in.time());
-        *attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
-
-        true
+        Some((
+            self.albedo.value(rec.u, rec.v, &rec.p),
+            Ray::with_time(rec.p, scatter_direction, r_in.time()),
+        ))
     }
 }
 
@@ -72,22 +60,20 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Color,
-        scattered: &mut Ray,
-    ) -> bool {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)> {
         let reflected = Vec3::reflect(&r_in.direction().unit_vector(), &rec.normal);
-        *scattered = Ray::with_time(
+        let scattered = Ray::with_time(
             rec.p,
             reflected + self.fuzz * Vec3::random_in_unit_sphere(),
             r_in.time(),
         );
-        *attenuation = self.albedo;
+        let attenuation = self.albedo;
 
-        Vec3::dot(&scattered.direction(), &rec.normal) > 0.0
+        if Vec3::dot(&scattered.direction(), &rec.normal) > 0.0 {
+            Some((attenuation, scattered))
+        } else {
+            None
+        }
     }
 }
 
@@ -110,14 +96,8 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Color,
-        scattered: &mut Ray,
-    ) -> bool {
-        *attenuation = Color::new(1.0, 1.0, 1.0);
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)> {
+        let attenuation = Color::new(1.0, 1.0, 1.0);
         let refraction_ratio = if rec.front_face {
             (1.0) / self.ir
         } else {
@@ -138,9 +118,9 @@ impl Material for Dielectric {
             Vec3::refract(&unit_direction, &rec.normal, refraction_ratio)
         };
 
-        *scattered = Ray::with_time(rec.p, direction, r_in.time());
+        let scattered = Ray::with_time(rec.p, direction, r_in.time());
 
-        true
+        Some((attenuation, scattered))
     }
 }
 
@@ -162,14 +142,8 @@ impl<T: Texture> DiffuseLight<T> {
 }
 
 impl<T: Texture> Material for DiffuseLight<T> {
-    fn scatter(
-        &self,
-        _r_in: &Ray,
-        _rec: &HitRecord,
-        _attenuation: &mut Color,
-        _scattered: &mut Ray,
-    ) -> bool {
-        false
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<(Color, Ray)> {
+        None
     }
 
     fn emitted(&self, u: f64, v: f64, p: &Point) -> Color {
@@ -197,15 +171,9 @@ where
 }
 
 impl<T: Texture> Material for Isotropic<T> {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-        attenuation: &mut Color,
-        scattered: &mut Ray,
-    ) -> bool {
-        *scattered = Ray::with_time(rec.p, Vec3::random_in_unit_sphere(), r_in.time());
-        *attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
-        true
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Color, Ray)> {
+        let scattered = Ray::with_time(rec.p, Vec3::random_in_unit_sphere(), r_in.time());
+        let attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
+        Some((attenuation, scattered))
     }
 }
