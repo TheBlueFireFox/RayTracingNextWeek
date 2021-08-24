@@ -40,7 +40,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
         let oc = *r.origin() - self.center;
         let a = r.direction().length_squared();
         let half_b = Vec3::dot(&oc, &r.direction());
@@ -49,7 +49,7 @@ impl Hittable for Sphere {
         let discriminant = half_b * half_b - a * c;
 
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         let sqrtd = discriminant.sqrt();
@@ -59,19 +59,23 @@ impl Hittable for Sphere {
         if root < t_min || t_max < root {
             root = (-half_b + sqrtd) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
+        let mut rec = HitRecord::default();
+
         rec.t = root;
-        rec.p = r.at(rec.t);
+        rec.p = r.at(root);
+
         let outward_normal = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, &outward_normal);
         let t = self.get_sphere_uv(&outward_normal);
+
         rec.u = t.0;
         rec.v = t.1;
         rec.mat = Some(self.mat.clone());
 
-        true
+        Some(rec)
     }
 
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
@@ -104,7 +108,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
         let oc = *r.origin() - self.center(r.time());
         let a = r.direction().length_squared();
         let half_b = Vec3::dot(&oc, &r.direction());
@@ -113,7 +117,7 @@ impl Hittable for MovingSphere {
         let discriminant = half_b * half_b - a * c;
 
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         let sqrtd = discriminant.sqrt();
@@ -123,16 +127,19 @@ impl Hittable for MovingSphere {
         if root < t_min || t_max < root {
             root = (-half_b + sqrtd) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
+
+        let mut rec = HitRecord::default();
+
         rec.t = root;
         rec.p = r.at(rec.t);
         let outward_normal = (rec.p - self.center(r.time())) / self.radius;
         rec.set_face_normal(r, &outward_normal);
         rec.mat = Some(self.mat.clone());
 
-        true
+        Some(rec)
     }
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
@@ -196,13 +203,13 @@ impl Hittable for Cube {
         Some(Aabb::new(self.box_min, self.box_max))
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        let res = self.sides.hit(r, t_min, t_max, rec);
-        res
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
+        self.sides.hit(r, t_min, t_max)
     }
 }
 
 pub mod rect {
+
     use super::*;
 
     pub struct XY<M> {
@@ -232,7 +239,7 @@ pub mod rect {
             ))
         }
 
-        fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
             let org = r.origin();
             let dir = r.direction();
 
@@ -241,15 +248,17 @@ pub mod rect {
             let bounds = |val, min, max| val < min || max < val;
 
             if bounds(t, t_min, t_max) {
-                return false;
+                return None;
             }
 
             let x = org.x() + t * dir.x();
             let y = org.y() + t * dir.y();
 
             if bounds(x, self.x.0, self.x.1) || bounds(y, self.y.0, self.y.1) {
-                return false;
+                return None;
             }
+
+            let mut rec = HitRecord::default();
 
             let calc = |a, b: (_, _)| (a - b.0) / (b.1 - b.0);
 
@@ -262,7 +271,7 @@ pub mod rect {
             rec.mat = Some(self.mp.clone());
             rec.p = r.at(t);
 
-            true
+            Some(rec)
         }
     }
 
@@ -293,7 +302,7 @@ pub mod rect {
             ))
         }
 
-        fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
             let org = r.origin();
             let dir = r.direction();
             let t = (self.k - org.y()) / dir.y();
@@ -301,17 +310,19 @@ pub mod rect {
             let bounds = |val, min, max| val < min || max < val;
 
             if bounds(t, t_min, t_max) {
-                return false;
+                return None;
             }
 
             let x = org.x() + t * dir.x();
             let z = org.z() + t * dir.z();
 
             if bounds(x, self.x.0, self.x.1) || bounds(z, self.z.0, self.z.1) {
-                return false;
+                return None;
             }
 
             let calc = |a, b: (_, _)| (a - b.0) / (b.1 - b.0);
+
+            let mut rec = HitRecord::default();
 
             rec.u = calc(x, self.x);
             rec.v = calc(z, self.z);
@@ -322,7 +333,7 @@ pub mod rect {
             rec.mat = Some(self.mp.clone());
             rec.p = r.at(t);
 
-            true
+            Some(rec)
         }
     }
 
@@ -352,7 +363,7 @@ pub mod rect {
             ))
         }
 
-        fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>{
             let org = r.origin();
             let dir = r.direction();
             let t = (self.k - org.x()) / dir.x();
@@ -360,17 +371,19 @@ pub mod rect {
             let bounds = |val, min, max| val < min || max < val;
 
             if bounds(t, t_min, t_max) {
-                return false;
+                return None;
             }
 
             let y = org.y() + t * dir.y();
             let z = org.z() + t * dir.z();
 
             if bounds(y, self.y.0, self.y.1) || bounds(z, self.z.0, self.z.1) {
-                return false;
+                return None;
             }
 
             let calc = |a, b: (_, _)| (a - b.0) / (b.1 - b.0);
+
+            let mut rec = HitRecord::default();
 
             rec.u = calc(y, self.y);
             rec.v = calc(z, self.z);
@@ -381,7 +394,7 @@ pub mod rect {
             rec.mat = Some(self.mp.clone());
             rec.p = r.at(t);
 
-            true
+            Some(rec)
         }
     }
 }

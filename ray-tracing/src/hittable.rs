@@ -1,6 +1,9 @@
 use itertools::{self, izip};
 
-use std::sync::Arc;
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use crate::{
     aabb::Aabb,
@@ -9,8 +12,8 @@ use crate::{
     ray::{Point, Ray, Vec3},
 };
 
-#[derive(Clone, Default)]
-pub struct HitRecord {
+#[derive(Default)]
+pub struct InnerHitRecord {
     pub p: Point,
     pub normal: Vec3,
     pub mat: Option<Arc<dyn Material>>,
@@ -18,6 +21,24 @@ pub struct HitRecord {
     pub u: f64,
     pub v: f64,
     pub front_face: bool,
+}
+
+#[derive(Default)]
+#[repr(transparent)]
+pub struct HitRecord(Box<InnerHitRecord>);
+
+impl Deref for HitRecord {
+    type Target = InnerHitRecord;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+impl DerefMut for HitRecord {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.0
+    }
 }
 
 impl HitRecord {
@@ -35,7 +56,7 @@ impl HitRecord {
 
 pub trait Hittable: Send + Sync {
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb>;
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
 pub type HittableObject = Arc<dyn Hittable>;
@@ -72,20 +93,18 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        let mut temp_rec = HitRecord::default();
-        let mut hit_anything = false;
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let mut res = None;
         let mut closest_so_far = t_max;
 
         for obj in self.objects.iter() {
-            if obj.hit(r, t_min, closest_so_far, &mut temp_rec) {
-                hit_anything = true;
-                closest_so_far = temp_rec.t;
-                *rec = temp_rec.clone();
+            if let Some(rec) = obj.hit(r, t_min, closest_so_far) {
+                closest_so_far = rec.t;
+                res = Some(rec);
             }
         }
 
-        hit_anything
+        res
     }
 
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
@@ -134,18 +153,16 @@ where
         Some(output)
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let moved = Ray::with_time(*r.origin() - self.offset, *r.direction(), r.time());
 
-        if !self.ptr.hit(&moved, t_min, t_max, rec) {
-            return false;
-        }
+        let mut rec = self.ptr.hit(&moved, t_min, t_max)?;
 
         rec.p += self.offset;
         let normal = rec.normal;
         rec.set_face_normal(&moved, &normal);
 
-        true
+        Some(rec)
     }
 }
 
@@ -217,7 +234,7 @@ where
         self.bbox.clone()
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oorg = r.origin();
         let odir = r.direction();
 
@@ -235,9 +252,7 @@ where
 
         let rotated = Ray::with_time(org, dir, r.time());
 
-        if !self.ptr.hit(&rotated, t_min, t_max, rec) {
-            return false;
-        }
+        let mut rec = self.ptr.hit(&rotated, t_min, t_max)?;
 
         let calc = |data: &Vec3| {
             let mut res = data.clone();
@@ -254,6 +269,6 @@ where
         rec.p = p;
         rec.set_face_normal(&rotated, &normal);
 
-        true
+        Some(rec)
     }
 }

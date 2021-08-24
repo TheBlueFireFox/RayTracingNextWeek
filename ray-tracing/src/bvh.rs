@@ -109,17 +109,30 @@ impl Hittable for BvhNode {
         Some(self.ibox.clone())
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         if !self.ibox.hit(r, t_min, t_max) {
-            return false;
+            return None;
         }
-        let hit_left = self.left.hit(r, t_min, t_max, rec);
+        let hit_left = self.left.hit(r, t_min, t_max);
 
-        let using = if hit_left { rec.t } else { t_max };
+        let using = if let Some(rec) = &hit_left {
+            rec.t
+        } else {
+            t_max
+        };
 
-        let hit_right = self.right.hit(r, t_min, using, rec);
+        let hit_right = self.right.hit(r, t_min, using);
 
-        return hit_left || hit_right;
+        match (hit_left, hit_right) {
+            (None, val) | (val, None) => val,
+            (Some(hl), Some(hr)) => {
+                if hl.t < hr.t {
+                    Some(hl)
+                } else {
+                    Some(hr)
+                }
+            }
+        }
     }
 }
 

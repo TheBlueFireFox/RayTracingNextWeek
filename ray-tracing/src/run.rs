@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use crate::{
     camera::Camera,
     clamp,
-    hittable::{HitRecord, Hittable},
+    hittable::Hittable,
     ray::{Ray, Vec3},
     render::Color,
 };
@@ -110,12 +110,11 @@ fn ray_color<H: Hittable>(r: &Ray, background: &Color, world: &H, depth: usize) 
         return Color::zeros();
     }
 
-    let mut rec = HitRecord::default();
-
     // If the ray hits nothing, return the background color.
-    if !world.hit(r, 0.001, f64::INFINITY, &mut rec) {
-        return *background;
-    }
+    let rec = match world.hit(r, 0.001, f64::INFINITY) {
+        Some(rec) => rec,
+        None => return *background,
+    };
 
     let mut scattered = Ray::new(Vec3::zeros(), Vec3::zeros());
     let mut attenuation = Color::zeros();
@@ -202,7 +201,7 @@ impl<'hit, 'conf, 'cam, H: Hittable> Runner<'hit, 'conf, 'cam, H> {
         cfg_if! {
             if #[cfg(feature = "progressbar")] {
                 let data = data.progress_with(self.pb.clone());
-            } 
+            }
         }
 
         data.flat_map(inner).collect()

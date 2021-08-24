@@ -45,27 +45,14 @@ where
         self.boundary.bounding_box(time0, time1)
     }
 
-    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         // Print occasional samples when debugging. To enable, set enableDebug true.
         const ENABLE_DEBUG: bool = false;
         let debugging = ENABLE_DEBUG && rand_range(0.0..1.0) < 0.00001;
 
-        let mut rec1 = HitRecord::default();
-        let mut rec2 = HitRecord::default();
+        let mut rec1 = self.boundary.hit(r, f64::NEG_INFINITY, f64::INFINITY)?;
 
-        if !self
-            .boundary
-            .hit(r, f64::NEG_INFINITY, f64::INFINITY, &mut rec1)
-        {
-            return false;
-        }
-
-        if !self
-            .boundary
-            .hit(r, rec1.t + 0.001, f64::INFINITY, &mut rec2)
-        {
-            return false;
-        }
+        let mut rec2 = self.boundary.hit(r, rec1.t + 0.001, f64::INFINITY)?;
 
         if debugging {
             eprintln!("\nt_min={}, t_max={}", t_min, t_max);
@@ -75,7 +62,7 @@ where
         rec2.t = f64::min(rec2.t, t_max);
 
         if rec1.t >= rec2.t {
-            return false;
+            return None;
         }
 
         rec1.t = f64::max(rec1.t, 0.0);
@@ -85,8 +72,10 @@ where
         let hit_distance = self.neg_inv_density * f64::ln(rand_range(0.0..1.0));
 
         if hit_distance > distance_inside_boundary {
-            return false;
+            return None;
         }
+
+        let mut rec = HitRecord::default();
 
         rec.t = rec1.t + hit_distance / ray_length;
         rec.p = r.at(rec.t);
@@ -102,6 +91,6 @@ where
         rec.front_face = true;
         rec.mat = Some(self.phase_function.clone());
 
-        true
+        Some(rec)
     }
 }
