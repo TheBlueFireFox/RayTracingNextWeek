@@ -12,7 +12,7 @@ use ray_tracing::{
     texture::{CheckerTexture, ImageTexture, NoiseTexture},
 };
 
-#[allow(unused)]
+#[derive(Debug, Clone, Copy, clap::ArgEnum)]
 pub enum Worlds {
     RandomScene,
     TwoPerlinSpheres,

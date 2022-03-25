@@ -16,7 +16,6 @@ use ray_tracing::{
 use scenes::{scenes::Worlds, WorldSettings};
 
 pub const REPETITION: usize = 1;
-const WORLD: Worlds = Worlds::FinalScene;
 
 pub fn run(
     WorldSettings { conf, world, cam }: &WorldSettings,
@@ -47,9 +46,20 @@ pub fn run(
     Ok(res)
 }
 
+
+#[derive(clap::Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(arg_enum)]
+    scenes: Worlds
+}
+
 pub fn create_image() -> anyhow::Result<(Config, Vec<Color>)> {
+    use clap::Parser;
+    let args = Args::parse();
+
     // setup render
-    let settings = scenes::setup(WORLD)?;
+    let settings = scenes::setup(args.scenes)?;
     let conf = settings.conf.clone();
 
     // ProgressBar

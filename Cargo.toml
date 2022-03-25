@@ -10,10 +10,11 @@ members = ["ray-tracing", "scenes"]
 
 [dependencies]
 anyhow = "1.0"
-console = "0.14"
-indicatif = {version = "0.16"}
-ray-tracing = {path = "ray-tracing", features = ["progressbar"]}
-scenes = {path = "scenes"}
+clap = { version = "3.1.6", features = [ "derive" ] }
+console = "0.15"
+indicatif = { version = "0.16" }
+ray-tracing = { path = "ray-tracing", features = ["progressbar"] }
+scenes = { path = "scenes" }
 
 [profile.release]
 debug = true
